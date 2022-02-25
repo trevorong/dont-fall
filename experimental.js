@@ -4,20 +4,23 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
-const g = 10; // gravity constant
-const c = 5; // damping constant
+const g = 20; // gravity constant
+const c = 250; // damping constant
 // const meters_per_frame = 0.05;
 const meters_per_frame = 0.2;
 const jakobsen_iters = 15;
+const HUMAN = 150;
 export class Rope {
-    constructor(n = 10, l = 10, anchor = true) {
+    constructor(n = 10, l = 10, start, anchor = true, radius = 0.5) {
         this.points = [];
         this.n = n;
         this.d = l/n;
         // create a rope that starts horizontal
-        let position = vec3(0, 0, 0);
+        let position = start || vec3(0, 0, 0);
         for (let i = 0; i < n; i++) {
-            this.points.push(new Point(position, i === 0 && anchor));
+            const anchorPoint = (i === 0 || i == n-1);
+            const mass = i === 0 ? HUMAN : i === n - 1 ? HUMAN : 1
+            this.points.push(new Point(position, anchorPoint && anchor, radius, mass));
             position = position.plus(vec3(this.d, 0, 0));
         }
     }
@@ -26,16 +29,23 @@ export class Rope {
         return this.points;
     }
 
-    update(dt, thrust) {
+    toggleAnchor(i = this.n - 1) {
+        this.points[i].toggleAnchor();
+    }
+
+    update(dt, thrust, pulley) {
         // control step size in case of weirdness
         dt = Math.min(dt, 0.02);
         
         // verlet integration
         const n = this.n;
+        let ti = 0;
         for (let i = 0; i < n; i++) {
             const p = this.points[i];
             if (p.anchor) {
-                if (thrust) p.move(thrust);
+                if (thrust && thrust.length && thrust.length > ti) {
+                    p.move(thrust[ti++]);
+                }
             }
             else {
                 // x_n+1 = 2x_n - x_n-1 + dt^2a
@@ -53,35 +63,55 @@ export class Rope {
                 const p2 = this.points[i];
                 const diff = p2.position.minus(p1.position);
                 const dir = diff.normalized();
-                const dist = (diff.norm() - this.d)/2;
+                const dist = diff.norm() - this.d;
                 const vec = dir.times(dist);
                 // don't apply jakobsen to anchors
                 if (!p1.anchor && !p2.anchor) {
-                    p1.position = p1.position.plus(vec);
-                    p2.position = p2.position.minus(vec);
+                    let r1 = p1.mass / (p1.mass + p2.mass);
+                    let r2 = p2.mass / (p1.mass + p2.mass);
+                    p1.position = p1.position.plus(vec.times(r2));
+                    p2.position = p2.position.minus(vec.times(r1));
                 }
                 else if (p1.anchor) {
-                    p2.position = p2.position.minus(vec.times(2));
+                    p2.position = p2.position.minus(vec);
                 }
                 else if (p2.anchor) {
-                    p1.position = p1.position.plus(vec.times(2));
+                    p1.position = p1.position.plus(vec);
                 } 
+            }
+            
+            // detect pulley collision
+            if (pulley) for (let i = 0; i < n; i++) {
+                const p = this.points[i];
+                const diff = p.position.minus(pulley.position);
+                const dist = (diff.norm() - (p.radius + pulley.radius));
+                if (dist < 0) {
+                    const dir = diff.normalized();
+                    const vec = dir.times(dist);
+                    p.position = p.position.minus(vec);
+                }
             }
         }
     }
 }
 
 export class Point {
-    constructor(position, anchor = false) { //vec3 or vec4?
+    constructor(position, anchor = false, radius = 0.5, mass = 1) { //vec3 or vec4?
         this.position = position;
         this.prevPosition = position; 
         this.anchor = anchor;
+        this.radius = radius;
+        this.mass = mass;
     }
 
     // for anchor points
     move(thrust) {
         this.position = this.position.plus(thrust.times(meters_per_frame));
         this.prevPosition = this.position;
+    }
+
+    toggleAnchor() {
+        this.anchor = !this.anchor;
     }
 
     update(position) {
@@ -92,12 +122,24 @@ export class Point {
     acceleration() {
         if (this.anchor) return vec3(0, 0, 0);
         const grav = vec3(0, -g, 0);
-        const damp = this.position.minus(this.prevPosition).times(-c);
+        const damp = this.position.minus(this.prevPosition).times(-c/this.mass);
         return grav.plus(damp);
     }
 
     transform() {
         return Mat4.translation(...this.position)
-            .times(Mat4.scale(0.5, 0.5, 0.5));
+            .times(Mat4.scale(this.radius, this.radius, this.radius));
+    }
+}
+
+export class Pulley {
+    constructor(position, radius = 1) { 
+        this.position = position;
+        this.radius = radius;
+    }
+
+    transform() {
+        return Mat4.translation(...this.position)
+            .times(Mat4.scale(this.radius, this.radius, this.radius));
     }
 }
