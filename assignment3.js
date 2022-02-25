@@ -1,5 +1,6 @@
 import {defs, tiny} from './examples/common.js';
 import {Shape_From_File} from './examples/obj-file-demo.js';
+import {Rope} from './experimental.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -9,6 +10,9 @@ export class Assignment3 extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
+
+        this.rope = new Rope(20, 10);
+        this.thrust = vec3(0, 0, 0);
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -66,13 +70,11 @@ export class Assignment3 extends Scene {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
         this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
         this.new_line();
-        this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
-        this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
+        this.key_triggered_button("Move anchor up", ["Control", "w"], () => this.thrust[1] = 1, undefined, () => this.thrust[1] = 0);
+        this.key_triggered_button("Move anchor down", ["Control", "s"], () => this.thrust[1] = -1, undefined, () => this.thrust[1] = 0);
         this.new_line();
-        this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
-        this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
-        this.new_line();
-        this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
+        this.key_triggered_button("Move anchor left", ["Control", "a"], () => this.thrust[0] = -1, undefined, () => this.thrust[0] = 0);
+        this.key_triggered_button("Move anchor right", ["Control", "d"], () => this.thrust[0] = 1, undefined, () => this.thrust[0] = 0);
     }
 
     display(context, program_state) {
@@ -108,54 +110,17 @@ export class Assignment3 extends Scene {
         model_transform = Mat4.identity();
 
         // make sun
-        const w = 2*Math.PI/10; // period = 10sec
-        const sun_size = 2 + Math.cos(w*t); // range [1,3]
-        const color_trig = 0.5 + 0.5*Math.cos(w*t); // range [0,1]
-        const sun_color = color(1, 1*color_trig, 1*color_trig, 1.0);
-        const light_size = 10**sun_size; 
+        const light_size = 10**3; 
 
         // The parameters of the Light are: position, color, size
         program_state.lights = [new Light(vec4(0,0,0,1), color(1,1,1,1.0), light_size)];
 
-        model_transform = model_transform.times(Mat4.scale(sun_size, sun_size, sun_size));
-        this.shapes.sphere.draw(context, program_state, model_transform, this.materials.sun.override({color: sun_color}));
-        model_transform = Mat4.identity();
-
-        // Fill in matrix operations and drawing code to draw the solar system scene (Requirements 3 and 4)
-        // planet 1
-        model_transform = model_transform.times(Mat4.rotation(t, 0, 1, 0).times(Mat4.translation(5,0,0)));
-        this.planet_1 = model_transform;
-        this.shapes.planet1.draw(context, program_state, model_transform, this.materials.planet1);
-        model_transform = Mat4.identity();
-
-        // planet 2
-        const p2material = Math.round(t) % 2 == 0 ? this.materials.planet2phong : this.materials.planet2gouraud;
-        model_transform = model_transform.times(Mat4.rotation(0.7*t, 0, 1, 0).times(Mat4.translation(8,0,0)));
-        this.planet_2 = model_transform;
-        this.shapes.planet2.draw(context, program_state, model_transform, p2material);
-        model_transform = Mat4.identity();
-
-        // planet 3
-        const wobble = Math.sin(1.2*t);
-        model_transform = model_transform.times(Mat4.rotation(0.5*t, 0, 1, 0).times(Mat4.translation(11,0,0)));
-        model_transform = model_transform.times(Mat4.rotation(wobble, 1, 1, 0))
-        this.shapes.planet3.draw(context, program_state, model_transform, this.materials.planet3);
-        this.planet_3 = model_transform;
-
-
-        model_transform = model_transform.times(Mat4.scale(3.5,3.5,0));
-        this.shapes.torus.draw(context, program_state, model_transform, this.materials.ring);
-        model_transform = Mat4.identity();
-
-        // planet 4
-        model_transform = model_transform.times(Mat4.rotation(0.4*t, 0, 1, 0).times(Mat4.translation(14,0,0)));
-        this.shapes.planet4.draw(context, program_state, model_transform, this.materials.planet4);
-        this.planet_4 = model_transform;
-
-        model_transform = model_transform.times(Mat4.rotation(t, 0, 1, 0).times(Mat4.translation(2,0,0)));
-        this.shapes.moon.draw(context, program_state, model_transform, this.materials.moon);
-        this.moon = model_transform;
-        model_transform = Mat4.identity();
+        // TEST: Rope
+        for (let i = 0; i < this.rope.n; i++) {
+            const p = this.rope.getPoints()[i];
+            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
+        }
+        this.rope.update(dt, this.thrust);
 
         // camera buttons
         const desired = this.attached;
