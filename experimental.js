@@ -8,6 +8,7 @@ const g = 10; // gravity constant
 const c = 5; // damping constant
 // const meters_per_frame = 0.05;
 const meters_per_frame = 0.2;
+const repetitions = 15;
 export class Rope {
     constructor(n = 10, l = 10, anchor = true) {
         this.points = [];
@@ -41,29 +42,31 @@ export class Rope {
                 const newPosition = p.position.times(2)
                     .minus(p.prevPosition)
                     .plus(p.acceleration().times(dt*dt));
-                    p.update(newPosition);
+                p.update(newPosition);
             }
         }
 
         // jakobsen method
-        for (let i = 1; i < n; i++) {
-            const p1 = this.points[i-1];
-            const p2 = this.points[i];
-            const diff = p2.position.minus(p1.position);
-            const dir = diff.normalized();
-            const dist = (diff.norm() - this.d)/2;
-            const vec = dir.times(dist);
-            // don't apply jakobsen to anchors
-            if (!p1.anchor && !p2.anchor) {
-                p1.position = p1.position.plus(vec);
-                p2.position = p2.position.minus(vec);
+        for (let iter = 0; iter < repetitions; iter++){
+            for (let i = 1; i < n; i++) {
+                const p1 = this.points[i-1];
+                const p2 = this.points[i];
+                const diff = p2.position.minus(p1.position);
+                const dir = diff.normalized();
+                const dist = (diff.norm() - this.d)/2;
+                const vec = dir.times(dist);
+                // don't apply jakobsen to anchors
+                if (!p1.anchor && !p2.anchor) {
+                    p1.position = p1.position.plus(vec);
+                    p2.position = p2.position.minus(vec);
+                }
+                else if (p1.anchor) {
+                    p2.position = p2.position.minus(vec.times(2));
+                }
+                else if (p2.anchor) {
+                    p1.position = p1.position.plus(vec.times(2));
+                } 
             }
-            else if (p1.anchor) {
-                p2.position = p2.position.minus(vec.times(2));
-            }
-            else if (p2.anchor) {
-                p1.position = p1.position.plus(vec.times(2));
-            } 
         }
     }
 }
@@ -75,6 +78,7 @@ export class Point {
         this.anchor = anchor;
     }
 
+    // for anchor points
     move(thrust) {
         this.position = this.position.plus(thrust.times(meters_per_frame));
         this.prevPosition = this.position;
