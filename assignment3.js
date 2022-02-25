@@ -11,9 +11,10 @@ export class Assignment3 extends Scene {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
 
-        this.rope = new Rope(60, 25, vec3(-25/2, 1, 0));
+        const L = 30;
+        this.rope = new Rope(L*2, L, vec3(-L/2, 1, 0));
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
-        this.pulley = new Pulley(vec3(0, 0, 0), 1);
+        this.pulleys = [new Pulley(vec3(0, 0, 0), 1), new Pulley(vec3(0, 4, 0), 1)];
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -138,8 +139,11 @@ export class Assignment3 extends Scene {
             const p = this.rope.getPoints()[i];
             this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
         }
-        this.rope.update(dt, this.thrust, this.pulley);
-        this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
+        this.rope.update(dt, this.thrust, this.pulleys);
+        for (let i = 0; i < this.pulleys.length; i++) {
+            const pulley = this.pulleys[i];
+            this.shapes.teapot.draw(context, program_state, pulley.transform(), this.materials.test);
+        }
 
     }
 }

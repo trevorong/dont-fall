@@ -36,7 +36,7 @@ export class Rope {
         this.points[i].toggleAnchor();
     }
 
-    update(dt, thrust, pulley) {
+    update(dt, thrust, pulleys) {
         // control step size in case of weirdness
         dt = Math.min(dt, 0.02);
         
@@ -84,16 +84,21 @@ export class Rope {
             }
             
             // detect pulley collision
-            if (pulley) for (let i = 0; i < n; i++) {
-                const p = this.points[i];
-                const diff = p.position.minus(pulley.position);
-                const dist = (diff.norm() - (p.radius + pulley.radius));
-                if (dist < 0) {
-                    const dir = diff.normalized();
-                    const vec = dir.times(dist);
-                    p.position = p.position.minus(vec);
+            if (pulleys && pulleys.length) {
+                for (let i = 0; i < n; i++) {
+                    for (let j = 0; j < pulleys.length; j++) {
+                        const pulley = pulleys[j];
+                        const p = this.points[i];
+                        const diff = p.position.minus(pulley.position);
+                        const dist = (diff.norm() - (p.radius + pulley.radius));
+                        if (dist < 0) {
+                            const dir = diff.normalized();
+                            const vec = dir.times(dist);
+                            p.position = p.position.minus(vec);
+                        }
+                    }
                 }
-            }
+            }   
         }
     }
 }
