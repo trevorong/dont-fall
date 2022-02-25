@@ -1,6 +1,8 @@
 import {defs, tiny} from './examples/common.js';
 import {Shape_From_File} from './examples/obj-file-demo.js';
 import {Rope} from './experimental.js';
+import { Person } from './person.js';
+import { FLOOR_HEIGHT } from './constants.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -13,6 +15,8 @@ export class Assignment3 extends Scene {
 
         this.rope = new Rope(20, 10);
         this.thrust = vec3(0, 0, 0);
+
+        this.climber = new Person(0, 5, 0);
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -34,7 +38,7 @@ export class Assignment3 extends Scene {
             test: new Material(new defs.Phong_Shader(),
                 {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
             test2: new Material(new Gouraud_Shader(),
-                {ambient: .4, diffusivity: .6, color: hex_color("#992828")}),
+                {ambient: .4, diffusivity: .1, color: hex_color("#992828")}),
             ring: new Material(new Ring_Shader(),
                 {ambient: 1, color: hex_color("#B08040")}),
             sun: new Material(new defs.Phong_Shader(), 
@@ -101,7 +105,7 @@ export class Assignment3 extends Scene {
         model_transform = Mat4.identity();
 
         // draw ground
-        model_transform = model_transform.times(Mat4.translation(0,-20,0).times(Mat4.scale(50,0.1,50)));
+        model_transform = model_transform.times(Mat4.translation(0,FLOOR_HEIGHT,0).times(Mat4.scale(50,0.1,50)));
         this.shapes.box.draw(context, program_state, model_transform, this.materials.texture2);
         model_transform = Mat4.identity();
 
@@ -121,6 +125,12 @@ export class Assignment3 extends Scene {
             this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
         }
         this.rope.update(dt, this.thrust);
+
+        // human
+        const body_parts = this.climber.getBody();
+        this.shapes.sphere.draw(context, program_state, body_parts[0], this.materials.test2);
+        this.shapes.sphere.draw(context, program_state, body_parts[1], this.materials.test2);
+        this.climber.update(dt);
 
         // camera buttons
         const desired = this.attached;
