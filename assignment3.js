@@ -70,11 +70,11 @@ export class Assignment3 extends Scene {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
         this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
         this.new_line();
-        this.key_triggered_button("Move anchor up", ["Control", "w"], () => this.thrust[1] = 1, undefined, () => this.thrust[1] = 0);
-        this.key_triggered_button("Move anchor down", ["Control", "s"], () => this.thrust[1] = -1, undefined, () => this.thrust[1] = 0);
+        this.key_triggered_button("Move anchor up", ["i"], () => this.thrust[1] = 1, undefined, () => this.thrust[1] = 0);
+        this.key_triggered_button("Move anchor down", ["k"], () => this.thrust[1] = -1, undefined, () => this.thrust[1] = 0);
         this.new_line();
-        this.key_triggered_button("Move anchor left", ["Control", "a"], () => this.thrust[0] = -1, undefined, () => this.thrust[0] = 0);
-        this.key_triggered_button("Move anchor right", ["Control", "d"], () => this.thrust[0] = 1, undefined, () => this.thrust[0] = 0);
+        this.key_triggered_button("Move anchor left", ["j"], () => this.thrust[0] = -1, undefined, () => this.thrust[0] = 0);
+        this.key_triggered_button("Move anchor right", ["l"], () => this.thrust[0] = 1, undefined, () => this.thrust[0] = 0);
     }
 
     display(context, program_state) {
