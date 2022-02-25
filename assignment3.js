@@ -139,7 +139,7 @@ export class Assignment3 extends Scene {
             this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
         }
         this.rope.update(dt, this.thrust, this.pulley);
-        this.shapes.sphere.draw(context, program_state, this.pulley.transform(), this.materials.test);
+        this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
     }
 }
