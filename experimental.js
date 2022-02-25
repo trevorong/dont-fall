@@ -66,7 +66,7 @@ export class Rope {
                         if (N < 0 && dP.norm() > 0) {
                             const fDir = dP.cross(diff).cross(diff).normalized();
                             const v = dP.dot(fDir);
-                            const fric = fDir.times(Math.min(f*v*N, -v)/p.mass);
+                            const fric = fDir.times(Math.min(f*v*N/p.mass, -v));
                             // console.log("\nDIFF", diff, "\nDP", dP, "\nFDIR", fDir, "\nFRIC", fric, "\nV", v, "\nFORCE", -f*N*v, "\nMULT", -f*N*v);
                             newPosition = newPosition.plus(fric);
                         }
