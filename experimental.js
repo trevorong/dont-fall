@@ -9,6 +9,7 @@ const {
 
 const g = 20; // gravity constant
 const c = 250; // damping constant
+const f = 100; // friction constant
 // const meters_per_frame = 0.05;
 const meters_per_frame = 0.2;
 const jakobsen_iters = 15;
@@ -52,10 +53,25 @@ export class Rope {
             }
             else {
                 // x_n+1 = 2x_n - x_n-1 + dt^2a
-                const newPosition = p.position.times(2)
+                let newPosition = p.position.times(2)
                     .minus(p.prevPosition)
                     .plus(p.acceleration().times(dt*dt));
                 // potentially compute friction?
+                if (pulleys && pulleys.length) {
+                    for (let j = 0; j < pulleys.length; j++) {
+                        const pulley = pulleys[j];
+                        const diff = newPosition.minus(pulley.position);
+                        const N = (diff.norm() - (p.radius + pulley.radius));
+                        const dP = newPosition.minus(p.position);
+                        if (N < 0 && dP.norm() > 0) {
+                            const fDir = dP.cross(diff).cross(diff).normalized();
+                            const v = dP.dot(fDir);
+                            const fric = fDir.times(Math.min(f*v*N, -v)/p.mass);
+                            // console.log("\nDIFF", diff, "\nDP", dP, "\nFDIR", fDir, "\nFRIC", fric, "\nV", v, "\nFORCE", -f*N*v, "\nMULT", -f*N*v);
+                            newPosition = newPosition.plus(fric);
+                        }
+                    }
+                }   
                 p.update(newPosition);
             }
         }

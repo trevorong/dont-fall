@@ -14,7 +14,10 @@ export class Assignment3 extends Scene {
         const L = 30;
         this.rope = new Rope(L*2, L, vec3(-L/2, 1, 0));
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
-        this.pulleys = [new Pulley(vec3(0, 0, 0), 1), new Pulley(vec3(0, 4, 0), 1)];
+        this.pulleys = [
+            new Pulley(vec3(0, 0, 0), 1), 
+            new Pulley(vec3(0, 4, 0), 1)
+        ];
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
