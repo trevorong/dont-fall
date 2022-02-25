@@ -157,7 +157,7 @@ export class Assignment3 extends Scene {
           program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
         }
         this.rope.update(dt, this.thrust, this.pulley);
-        this.shapes.sphere.draw(context, program_state, this.pulley.transform(), this.materials.test);
+        this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
     }
 }

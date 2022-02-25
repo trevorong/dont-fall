@@ -67,10 +67,10 @@ export class Rope {
                 const vec = dir.times(dist);
                 // don't apply jakobsen to anchors
                 if (!p1.anchor && !p2.anchor) {
-                    let r1 = p1.mass / (p1.mass + p2.mass);
-                    let r2 = p2.mass / (p1.mass + p2.mass);
-                    p1.position = p1.position.plus(vec.times(r2));
-                    p2.position = p2.position.minus(vec.times(r1));
+                    const r1 = p2.mass / (p1.mass + p2.mass);
+                    const r2 = 1 - r1;
+                    p1.position = p1.position.plus(vec.times(r1));
+                    p2.position = p2.position.minus(vec.times(r2));
                 }
                 else if (p1.anchor) {
                     p2.position = p2.position.minus(vec);
