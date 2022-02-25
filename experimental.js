@@ -8,7 +8,7 @@ const g = 10; // gravity constant
 const c = 5; // damping constant
 // const meters_per_frame = 0.05;
 const meters_per_frame = 0.2;
-const repetitions = 15;
+const jakobsen_iters = 15;
 export class Rope {
     constructor(n = 10, l = 10, anchor = true) {
         this.points = [];
@@ -47,7 +47,7 @@ export class Rope {
         }
 
         // jakobsen method
-        for (let iter = 0; iter < repetitions; iter++){
+        for (let iter = 0; iter < jakobsen_iters; iter++){
             for (let i = 1; i < n; i++) {
                 const p1 = this.points[i-1];
                 const p2 = this.points[i];
