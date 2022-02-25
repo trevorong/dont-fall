@@ -55,6 +55,7 @@ export class Rope {
                 const newPosition = p.position.times(2)
                     .minus(p.prevPosition)
                     .plus(p.acceleration().times(dt*dt));
+                // potentially compute friction?
                 p.update(newPosition);
             }
         }
@@ -127,10 +128,14 @@ export class Point {
         this.position = position;
     }
 
+    dP() {
+        return this.position.minus(this.prevPosition);
+    }
+
     acceleration() {
         if (this.anchor) return vec3(0, 0, 0);
         const grav = vec3(0, -g, 0);
-        const damp = this.position.minus(this.prevPosition).times(-c/this.mass);
+        const damp = this.dP().times(-c/this.mass);
         return grav.plus(damp);
     }
 
