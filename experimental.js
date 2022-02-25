@@ -4,6 +4,9 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
+// Rope simulation code based off this article
+// https://www.owlree.blog/posts/simulating-a-rope.html
+
 const g = 20; // gravity constant
 const c = 250; // damping constant
 // const meters_per_frame = 0.05;
