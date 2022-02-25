@@ -2,7 +2,7 @@ import {defs, tiny} from './examples/common.js';
 import {Shape_From_File} from './examples/obj-file-demo.js';
 import { Person } from './person.js';
 import { FLOOR_HEIGHT } from './constants.js';
-import {Rope, Pulley} from './experimental.js';
+import {Rope, Pulley, Point} from './experimental.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -13,11 +13,16 @@ export class Assignment3 extends Scene {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
 
-        this.rope = new Rope(60, 25, vec3(-25/2, 1, 0));
+        // this.rope = new Rope(60, 25, vec3(-25/2, 1, 0));
+        const startLoc = vec3(2,5,0);
+        const belayerLoc = vec3(-5, -5, 0);
+        this.rope = new Rope(60, 10, startLoc, belayerLoc);
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
         this.pulley = new Pulley(vec3(0, 0, 0), 1);
 
-        this.climber = new Person(0, 5, 0);
+        this.climber = new Person(...startLoc);
+        this.belayer = new Person(...belayerLoc);
+        this.belayer.freeFall = false;
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -149,6 +154,11 @@ export class Assignment3 extends Scene {
         this.shapes.sphere.draw(context, program_state, body_parts[1], this.materials.test2);
         this.climber.update(dt);
 
+        const belayer_body = this.belayer.getBody();
+        this.shapes.sphere.draw(context, program_state, belayer_body[0], this.materials.test2);
+        this.shapes.sphere.draw(context, program_state, belayer_body[1], this.materials.test2);
+        this.belayer.update(dt);
+
         // camera buttons
         const desired = this.attached;
         if (desired && desired()) {
@@ -156,7 +166,9 @@ export class Assignment3 extends Scene {
         } else {
           program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
         }
+
         this.rope.update(dt, this.thrust, this.pulley);
+        this.rope.setAnchors(new Point(this.climber.body_loc));
         this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
     }

@@ -1,1 +1,1 @@
-export const FLOOR_HEIGHT = -10;
+export const FLOOR_HEIGHT = -15;

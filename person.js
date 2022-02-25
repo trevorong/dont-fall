@@ -16,6 +16,8 @@ export class Person {
         this.prev_body_loc = vec3(x, y, z);
         this.head_vec = vec3(0, 2.5, 0);
         this.dY = 0;
+
+        this.freeFall = true;
     }
 
     getBody() {
@@ -29,7 +31,7 @@ export class Person {
         // control step size in case of weirdness
         dt = Math.min(dt, 0.02);
         
-        if (this.body_loc[1] - body_r > FLOOR_HEIGHT) {
+        if (this .freeFall && this.body_loc[1] - body_r > FLOOR_HEIGHT) {
             // simulate fall using physics
             this.dY -= g;
             if (this.body_loc - body_r + this.dY < FLOOR_HEIGHT) {
