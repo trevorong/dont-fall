@@ -1,6 +1,6 @@
 import {defs, tiny} from './examples/common.js';
 import {Shape_From_File} from './examples/obj-file-demo.js';
-import {Rope} from './experimental.js';
+import {Rope, Pulley} from './experimental.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -11,8 +11,9 @@ export class Assignment3 extends Scene {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
 
-        this.rope = new Rope(20, 10);
-        this.thrust = vec3(0, 0, 0);
+        this.rope = new Rope(60, 25, vec3(-25/2, 1, 0));
+        this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
+        this.pulley = new Pulley(vec3(0, 0, 0), 1);
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -70,11 +71,28 @@ export class Assignment3 extends Scene {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
         this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
         this.new_line();
-        this.key_triggered_button("Move anchor up", ["i"], () => this.thrust[1] = 1, undefined, () => this.thrust[1] = 0);
-        this.key_triggered_button("Move anchor down", ["k"], () => this.thrust[1] = -1, undefined, () => this.thrust[1] = 0);
+        this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
+        this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
         this.new_line();
-        this.key_triggered_button("Move anchor left", ["j"], () => this.thrust[0] = -1, undefined, () => this.thrust[0] = 0);
-        this.key_triggered_button("Move anchor right", ["l"], () => this.thrust[0] = 1, undefined, () => this.thrust[0] = 0);
+        this.key_triggered_button("Move anchor 1 left", ["j"], () => this.thrust[0][0] = -1, undefined, () => this.thrust[0][0] = 0);
+        this.key_triggered_button("Move anchor 1 right", ["l"], () => this.thrust[0][0] = 1, undefined, () => this.thrust[0][0] = 0);
+        this.new_line();
+        this.key_triggered_button("Toggle anchor 1", ["t"], () => this.rope.toggleAnchor(0));
+        
+        this.new_line();
+        this.key_triggered_button("Move anchor 2 up", ["Shift", "I"], () => this.thrust[1][1] = 1, undefined, () => this.thrust[1][1] = 0);
+        this.key_triggered_button("Move anchor 2 down", ["Shift", "K"], () => this.thrust[1][1] = -1, undefined, () => this.thrust[1][1] = 0);
+        this.new_line();
+        this.key_triggered_button("Move anchor 2 left", ["Shift", "J"], () => this.thrust[1][0] = -1, undefined, () => this.thrust[1][0] = 0);
+        this.key_triggered_button("Move anchor 2 right", ["Shift", "L"], () => this.thrust[1][0] = 1, undefined, () => this.thrust[1][0] = 0);
+        this.new_line();
+        this.key_triggered_button("Toggle anchor 2", ["Shift", "T"], () => this.rope.toggleAnchor());
+        this.new_line();
+        this.key_triggered_button("Toggle both anchors", ["Shift", "P"], () => {
+            this.rope.toggleAnchor(0);
+            this.rope.toggleAnchor();
+        });
+
     }
 
     display(context, program_state) {
@@ -103,11 +121,11 @@ export class Assignment3 extends Scene {
         // draw ground
         model_transform = model_transform.times(Mat4.translation(0,-20,0).times(Mat4.scale(50,0.1,50)));
         this.shapes.box.draw(context, program_state, model_transform, this.materials.texture2);
-        model_transform = Mat4.identity();
+        // model_transform = Mat4.identity();
 
-        model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
-        this.shapes.teapot.draw(context, program_state, model_transform, this.materials.test);
-        model_transform = Mat4.identity();
+        // model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
+        // this.shapes.teapot.draw(context, program_state, model_transform, this.materials.test);
+        // model_transform = Mat4.identity();
 
         // make sun
         const light_size = 10**3; 
@@ -120,15 +138,9 @@ export class Assignment3 extends Scene {
             const p = this.rope.getPoints()[i];
             this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
         }
-        this.rope.update(dt, this.thrust);
+        this.rope.update(dt, this.thrust, this.pulley);
+        this.shapes.sphere.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
-        // camera buttons
-        const desired = this.attached;
-        if (desired && desired()) {
-          program_state.camera_inverse = Mat4.inverse(desired().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
-        } else {
-          program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
-        }
     }
 }
 
