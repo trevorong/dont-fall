@@ -1,7 +1,8 @@
 import {defs, tiny} from './examples/common.js';
+import {Shape_From_File} from './examples/obj-file-demo.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
 export class Assignment3 extends Scene {
@@ -15,13 +16,13 @@ export class Assignment3 extends Scene {
             torus2: new defs.Torus(3, 15),
             sphere: new defs.Subdivision_Sphere(4),
             circle: new defs.Regular_2D_Polygon(1, 15),
-            // Fill in as many additional shape instances as needed in this key/value table.
-            //        (Requirement 1)
+            box: new defs.Cube(),
             planet1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
             planet2: new defs.Subdivision_Sphere(3),
             planet3: new defs.Subdivision_Sphere(4),
             planet4: new defs.Subdivision_Sphere(4),
             moon: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(1),
+            teapot: new Shape_From_File("assets/teapot.obj"),
         };
 
         // *** Materials
@@ -32,8 +33,6 @@ export class Assignment3 extends Scene {
                 {ambient: .4, diffusivity: .6, color: hex_color("#992828")}),
             ring: new Material(new Ring_Shader(),
                 {ambient: 1, color: hex_color("#B08040")}),
-            // Fill in as many additional material objects as needed in this key/value table.
-            //        (Requirement 4)
             sun: new Material(new defs.Phong_Shader(), 
                 {ambient: 1, color: hex_color("#ff0000")}),
             planet1: new Material(new defs.Phong_Shader(), 
@@ -48,6 +47,16 @@ export class Assignment3 extends Scene {
                 {specularity: 1, color: hex_color("#ADD8E6")}),
             moon: new Material(new defs.Phong_Shader(), 
                 {diffusivity: 1, color: hex_color("#00ff00")}),
+            texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0.1,
+                texture: new Texture("assets/bg.png", "NEAREST")
+            }),
+            texture2: new Material(new defs.Textured_Phong(), {
+              color: hex_color("#000000"),
+              ambient: 1, diffusivity: 0.1, specularity: 0.1,
+              texture: new Texture("assets/earth.gif", "NEAREST")
+            }),
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -81,6 +90,23 @@ export class Assignment3 extends Scene {
         const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
         let model_transform = Mat4.identity();
 
+        // draw skybox
+        const light_position = vec4(10, 10, 10, 1);
+        program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+
+        model_transform = model_transform.times(Mat4.scale(100,100,100));
+        this.shapes.box.draw(context, program_state, model_transform, this.materials.texture);
+        model_transform = Mat4.identity();
+
+        // draw ground
+        model_transform = model_transform.times(Mat4.translation(0,-20,0).times(Mat4.scale(50,0.1,50)));
+        this.shapes.box.draw(context, program_state, model_transform, this.materials.texture2);
+        model_transform = Mat4.identity();
+
+        model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
+        this.shapes.teapot.draw(context, program_state, model_transform, this.materials.test);
+        model_transform = Mat4.identity();
+
         // make sun
         const w = 2*Math.PI/10; // period = 10sec
         const sun_size = 2 + Math.cos(w*t); // range [1,3]
@@ -88,15 +114,13 @@ export class Assignment3 extends Scene {
         const sun_color = color(1, 1*color_trig, 1*color_trig, 1.0);
         const light_size = 10**sun_size; 
 
-        // Lighting (Requirement 2)
         // The parameters of the Light are: position, color, size
-        program_state.lights = [new Light(vec4(0,0,0,1), sun_color, light_size)];
+        program_state.lights = [new Light(vec4(0,0,0,1), color(1,1,1,1.0), light_size)];
 
         model_transform = model_transform.times(Mat4.scale(sun_size, sun_size, sun_size));
         this.shapes.sphere.draw(context, program_state, model_transform, this.materials.sun.override({color: sun_color}));
         model_transform = Mat4.identity();
 
-        // Create Planets (Requirement 1)
         // Fill in matrix operations and drawing code to draw the solar system scene (Requirements 3 and 4)
         // planet 1
         model_transform = model_transform.times(Mat4.rotation(t, 0, 1, 0).times(Mat4.translation(5,0,0)));
