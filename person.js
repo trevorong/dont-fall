@@ -25,6 +25,11 @@ export class Person {
         this.tensionForces = 0;
     }
 
+    setPos(newPos) {
+        this.body_loc = newPos;
+        this.prev_body_loc = newPos;
+    }
+
     getBody() {
         return [
             Mat4.translation(...this.body_loc).times(Mat4.scale(body_r, body_r, body_r)),

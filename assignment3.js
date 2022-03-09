@@ -1,7 +1,7 @@
 import {defs, tiny} from './examples/common.js';
 import {Shape_From_File} from './examples/obj-file-demo.js';
 import { Person } from './person.js';
-import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, slack, cM, bM, friction, g } from './constants.js';
+import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, cX, bX, slack, cM, bM, friction, g } from './constants.js';
 import {Rope, Pulley, Point} from './experimental.js';
 
 const {
@@ -18,8 +18,8 @@ export class Assignment3 extends Scene {
         // const climberHeight = 5;
         // const pulleyHeight = 0;
         // const belayerHeight = -5;
-        const startLoc = vec3(2,climberHeight,0);
-        const belayerLoc = vec3(-5, belayerHeight, 0);
+        const startLoc = vec3(cX, climberHeight,0);
+        const belayerLoc = vec3(bX, belayerHeight, 0);
         const pulleyLoc = vec3(0,pulleyHeight,0);
         // const slack = 3;
         this.ropeLength =  slack + startLoc.minus(pulleyLoc).norm() + pulleyLoc.minus(belayerLoc).norm();
@@ -35,6 +35,42 @@ export class Assignment3 extends Scene {
 
         this.climber = new Person(...startLoc, cM, false);
         this.belayer = new Person(...belayerLoc, bM, false);
+        
+
+         // sliders
+         let cWSlider = document.getElementById("climberWeight");
+         let climber_label = document.getElementById("climber-label");
+         cWSlider.oninput = (e) => {
+            const w = e.target.value;
+            climber_label.innerHTML = "Climber Weight: "+w+" lbs";
+         }
+ 
+         let bWSlider = document.getElementById("belayerWeight");
+         let belayer_label = document.getElementById("belayer-label");
+         bWSlider.oninput = (e) => {
+            const w = e.target.value;
+            belayer_label.innerHTML = "Belayer Weight: "+w+" lbs";
+         }
+ 
+         let cHSlider = document.getElementById("climberHeight");
+         let climber_height_label = document.getElementById("climber-height-label");
+         cHSlider.oninput = (e) => {
+            const h = e.target.value;
+            climber_height_label.innerHTML = "Climber Height: "+h+" meters";
+            // console.log(val);
+            // console.log(b);
+            this.climber.setPos(vec3(cX, h - 10, 0));
+            this.belayer.setPos(vec3(bX, belayerHeight, 0));
+         }
+ 
+         let pHSlider = document.getElementById("pulleyHeight");
+         let pulley_label = document.getElementById("pulley-height-label");
+         pHSlider.oninput = (e) => {
+             const h = e.target.value;
+            pulley_label.innerHTML = "Pulley/Quickdraw Height: "+ h+" meters";
+            this.pulley.position = vec3(0, h - 10, 0);
+         }
+
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -83,6 +119,16 @@ export class Assignment3 extends Scene {
               ambient: 1, diffusivity: 0.1, specularity: 0.1,
               texture: new Texture("assets/earth.gif", "NEAREST")
             }),
+            ground_texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0.1,
+                texture: new Texture("assets/Grass_1.png", "NEAREST")
+            }),
+            rock_texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0.1,
+                texture: new Texture("assets/red-rock-texture.jpg", "NEAREST")
+            }),
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -91,6 +137,10 @@ export class Assignment3 extends Scene {
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
         this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
+        this.new_line();
+        this.key_triggered_button("Attach camera to Climber", ["Control", "1"], () => this.attached = () => this.climber_transform);
+        this.new_line();
+        this.key_triggered_button("Attach camera to Belayer", ["Control", "2"], () => this.attached = () => this.belayer_transform);
         this.new_line();
         this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
         this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
@@ -144,7 +194,7 @@ export class Assignment3 extends Scene {
 
         // draw ground
         model_transform = model_transform.times(Mat4.translation(0,FLOOR_HEIGHT,0).times(Mat4.scale(50,0.1,50)));
-        this.shapes.box.draw(context, program_state, model_transform, this.materials.texture2);
+        this.shapes.box.draw(context, program_state, model_transform, this.materials.ground_texture);
         // model_transform = Mat4.identity();
 
         // model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
@@ -162,6 +212,11 @@ export class Assignment3 extends Scene {
         //     const p = this.rope.getPoints()[i];
         //     this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
         // }
+
+
+        // rock wall
+        const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 10, 1));
+        this.shapes.box.draw(context, program_state, rock_transform, this.materials.rock_texture);
 
         if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength) {
             console.log("in pulley system");
@@ -192,6 +247,9 @@ export class Assignment3 extends Scene {
         this.shapes.sphere.draw(context, program_state, belayer_body[1], this.materials.test2);
         this.belayer.update(dt);
 
+        this.climber_transform = body_parts[1];  // attach camera to head of climber and not its body
+        this.belayer_transform = belayer_body[1];
+
         // TEST: Rope
         for (let i = 0; i < this.rope.n; i++) {
             const p = this.rope.getPoints()[i];
@@ -210,6 +268,15 @@ export class Assignment3 extends Scene {
         this.rope.setAnchors(new Point(this.climber.body_loc), new Point(this.belayer.body_loc));
         this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
+        if (this.attached && this.attached()) {
+            program_state.set_camera(
+                Mat4.inverse(this.attached().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
+            );
+        } else {
+            program_state.set_camera(
+                this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
+            );
+        }
     }
 
     get_distance_between_climber_belayer() {
