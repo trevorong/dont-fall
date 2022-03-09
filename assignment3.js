@@ -85,6 +85,7 @@ export class Assignment3 extends Scene {
             planet4: new defs.Subdivision_Sphere(4),
             moon: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(1),
             teapot: new Shape_From_File("assets/teapot.obj"),
+            among: new Shape_From_File("assets/amongus.obj"),
         };
 
         // *** Materials
@@ -131,7 +132,8 @@ export class Assignment3 extends Scene {
             }),
         }
 
-        this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        // Mat4.look_at(eye pos, at point pos, up vector)
+        this.initial_camera_location = Mat4.look_at(vec3(0, 3, 30), vec3(0, 0, 0), vec3(0, 1, 0));
     }
 
     make_control_panel() {
@@ -218,16 +220,19 @@ export class Assignment3 extends Scene {
         const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 10, 1));
         this.shapes.box.draw(context, program_state, rock_transform, this.materials.rock_texture);
 
-        if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength) {
+        if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength && 
+            this.climber.body_loc[1] <= this.pulley.position[1]) {
             console.log("in pulley system");
             this.climber.freeFall = false;
             this.belayer.freeFall = false;
-            this.climber.inPulley = true;
-            this.belayer.inPulley = true;
-            this.belayer.dY = -this.climber.dY;
-           
-            this.climber.tensionForces = -this.pulleyAcc;
-            this.belayer.tensionForces = this.pulleyAcc;
+            if (this.climber.dY != 0) {
+              this.climber.inPulley = true;
+              this.belayer.inPulley = true;
+              this.belayer.dY = -this.climber.dY;
+            
+              this.climber.tensionForces = -this.pulleyAcc;
+              this.belayer.tensionForces = this.pulleyAcc;
+            }
         }
         if (this.climber.inPulley && this.get_distance_between_climber_belayer() <= this.ropeLength) {
             this.climber.inPulley = false;
@@ -238,14 +243,21 @@ export class Assignment3 extends Scene {
 
         // human
         const body_parts = this.climber.getBody();
-        this.shapes.sphere.draw(context, program_state, body_parts[0], this.materials.test2);
-        this.shapes.sphere.draw(context, program_state, body_parts[1], this.materials.test2);
-        this.climber.update(dt);
+        this.shapes.among.draw(context, program_state, body_parts[0], this.materials.texture2);
+        // this.shapes.sphere.draw(context, program_state, body_parts[1], this.materials.test2);
 
         const belayer_body = this.belayer.getBody();
-        this.shapes.sphere.draw(context, program_state, belayer_body[0], this.materials.test2);
-        this.shapes.sphere.draw(context, program_state, belayer_body[1], this.materials.test2);
-        this.belayer.update(dt);
+        this.shapes.among.draw(context, program_state, belayer_body[0], this.materials.test2);
+        // this.shapes.sphere.draw(context, program_state, belayer_body[1], this.materials.test2);\
+        if (this.climber.body_loc[1] >= FLOOR_HEIGHT + 2) {
+          this.climber.update(dt);
+          this.belayer.update(dt);
+        } else {
+          this.climber.stopMoving();
+          this.belayer.stopMoving();
+        }
+
+
 
         this.climber_transform = body_parts[1];  // attach camera to head of climber and not its body
         this.belayer_transform = belayer_body[1];
@@ -257,26 +269,26 @@ export class Assignment3 extends Scene {
         }
 
         // camera buttons
-        const desired = this.attached;
-        if (desired && desired()) {
-          program_state.camera_inverse = Mat4.inverse(desired().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
-        } else {
-          program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
-        }
+        // const desired = this.attached;
+        // if (desired && desired()) {
+        //   program_state.camera_inverse = Mat4.inverse(desired().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
+        // } else {
+        //   program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
+        // }
 
         this.rope.update(dt, this.thrust, this.pulley);
         this.rope.setAnchors(new Point(this.climber.body_loc), new Point(this.belayer.body_loc));
         this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
-        if (this.attached && this.attached()) {
-            program_state.set_camera(
-                Mat4.inverse(this.attached().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
-            );
-        } else {
-            program_state.set_camera(
-                this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
-            );
-        }
+        // if (this.attached && this.attached()) {
+        //     program_state.set_camera(
+        //         Mat4.inverse(this.attached().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
+        //     );
+        // } else {
+        //     program_state.set_camera(
+        //         this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
+        //     );
+        // }
     }
 
     get_distance_between_climber_belayer() {
