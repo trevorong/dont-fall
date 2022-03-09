@@ -1,7 +1,7 @@
 import {defs, tiny} from './examples/common.js';
 import {Shape_From_File} from './examples/obj-file-demo.js';
 import { Person } from './person.js';
-import { FLOOR_HEIGHT } from './constants.js';
+import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, slack, cM, bM, friction, g } from './constants.js';
 import {Rope, Pulley, Point} from './experimental.js';
 
 const {
@@ -14,15 +14,27 @@ export class Assignment3 extends Scene {
         super();
 
         // this.rope = new Rope(60, 25, vec3(-25/2, 1, 0));
-        const startLoc = vec3(2,5,0);
-        const belayerLoc = vec3(-5, -5, 0);
-        this.rope = new Rope(60, 10, startLoc, belayerLoc);
-        this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
-        this.pulley = new Pulley(vec3(0, 0, 0), 1);
+        // constants to play with/user adjustable
+        // const climberHeight = 5;
+        // const pulleyHeight = 0;
+        // const belayerHeight = -5;
+        const startLoc = vec3(2,climberHeight,0);
+        const belayerLoc = vec3(-5, belayerHeight, 0);
+        const pulleyLoc = vec3(0,pulleyHeight,0);
+        // const slack = 3;
+        this.ropeLength =  slack + startLoc.minus(pulleyLoc).norm() + pulleyLoc.minus(belayerLoc).norm();
+        // const climberMass = 150;
+        // const belayerMass = 140;
+        // const frictionConstant = 0.3;
 
-        this.climber = new Person(...startLoc);
-        this.belayer = new Person(...belayerLoc);
-        this.belayer.freeFall = false;
+        this.pulleyAcc = ((cM - bM)*g - friction*(cM +bM))/(cM+bM);
+
+        this.rope = new Rope(50, this.ropeLength, startLoc, belayerLoc, false, 0.2);
+        this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
+        this.pulley = new Pulley(pulleyLoc, 1);
+
+        this.climber = new Person(...startLoc, cM, false);
+        this.belayer = new Person(...belayerLoc, bM, false);
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -101,7 +113,10 @@ export class Assignment3 extends Scene {
             this.rope.toggleAnchor(0);
             this.rope.toggleAnchor();
         });
-
+        this.key_triggered_button("Make climber fall", ["Shift", "D"], () => {
+            console.log("climber fall triggered");
+            this.climber.freeFall = true;
+        });
     }
 
     display(context, program_state) {
@@ -142,10 +157,28 @@ export class Assignment3 extends Scene {
         // The parameters of the Light are: position, color, size
         program_state.lights = [new Light(vec4(0,0,0,1), color(1,1,1,1.0), light_size)];
 
-        // TEST: Rope
-        for (let i = 0; i < this.rope.n; i++) {
-            const p = this.rope.getPoints()[i];
-            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
+        // // TEST: Rope
+        // for (let i = 0; i < this.rope.n; i++) {
+        //     const p = this.rope.getPoints()[i];
+        //     this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
+        // }
+
+        if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength) {
+            console.log("in pulley system");
+            this.climber.freeFall = false;
+            this.belayer.freeFall = false;
+            this.climber.inPulley = true;
+            this.belayer.inPulley = true;
+            this.belayer.dY = -this.climber.dY;
+           
+            this.climber.tensionForces = -this.pulleyAcc;
+            this.belayer.tensionForces = this.pulleyAcc;
+        }
+        if (this.climber.inPulley && this.get_distance_between_climber_belayer() <= this.ropeLength) {
+            this.climber.inPulley = false;
+            this.belayer.inPulley = false;
+            this.climber.stopMoving();
+            this.belayer.stopMoving();
         }
 
         // human
@@ -159,6 +192,12 @@ export class Assignment3 extends Scene {
         this.shapes.sphere.draw(context, program_state, belayer_body[1], this.materials.test2);
         this.belayer.update(dt);
 
+        // TEST: Rope
+        for (let i = 0; i < this.rope.n; i++) {
+            const p = this.rope.getPoints()[i];
+            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
+        }
+
         // camera buttons
         const desired = this.attached;
         if (desired && desired()) {
@@ -168,9 +207,13 @@ export class Assignment3 extends Scene {
         }
 
         this.rope.update(dt, this.thrust, this.pulley);
-        this.rope.setAnchors(new Point(this.climber.body_loc));
+        this.rope.setAnchors(new Point(this.climber.body_loc), new Point(this.belayer.body_loc));
         this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
+    }
+
+    get_distance_between_climber_belayer() {
+        return this.climber.body_loc.minus(this.pulley.position).norm() + this.pulley.position.minus(this.belayer.body_loc).norm();
     }
 }
 
