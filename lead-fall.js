@@ -1,8 +1,8 @@
-import {defs, tiny} from './examples/common.js';
-import {Shape_From_File} from './examples/obj-file-demo.js';
+import { defs, tiny } from './examples/common.js';
+import { Shape_From_File } from './examples/obj-file-demo.js';
 import { Person } from './person.js';
-import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, cX, bX, slack, cM, bM, friction, g } from './constants.js';
-import {Rope, Pulley, Point} from './rope.js';
+import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, cX, bX, slack, cM, bM, friction, g, belayerJ } from './constants.js';
+import { Rope, Pulley, Point } from './rope.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -18,16 +18,16 @@ export class Assignment3 extends Scene {
         // const climberHeight = 5;
         // const pulleyHeight = 0;
         // const belayerHeight = -5;
-        const startLoc = vec3(cX, climberHeight,0);
+        const startLoc = vec3(cX, climberHeight, 0);
         const belayerLoc = vec3(bX, belayerHeight, 0);
-        const pulleyLoc = vec3(0,pulleyHeight,0);
+        const pulleyLoc = vec3(0, pulleyHeight, 0);
         // const slack = 3;
-        this.ropeLength =  slack + startLoc.minus(pulleyLoc).norm() + pulleyLoc.minus(belayerLoc).norm();
+        this.ropeLength = slack + startLoc.minus(pulleyLoc).norm() + pulleyLoc.minus(belayerLoc).norm();
         // const climberMass = 150;
         // const belayerMass = 140;
         // const frictionConstant = 0.3;
 
-        this.pulleyAcc = ((cM - bM)*g - friction*(cM +bM))/(cM+bM);
+        // this.pulleyAcc = ((cM - bM) * g - friction * (cM + bM)) / (cM + bM);
 
         this.rope = new Rope(50, this.ropeLength, startLoc, belayerLoc, false, 0.2);
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
@@ -35,41 +35,41 @@ export class Assignment3 extends Scene {
 
         this.climber = new Person(...startLoc, cM, false);
         this.belayer = new Person(...belayerLoc, bM, false);
-        
 
-         // sliders
-         let cWSlider = document.getElementById("climberWeight");
-         let climber_label = document.getElementById("climber-label");
-         cWSlider.oninput = (e) => {
+
+        // sliders
+        let cWSlider = document.getElementById("climberWeight");
+        let climber_label = document.getElementById("climber-label");
+        cWSlider.oninput = (e) => {
             const w = e.target.value;
-            climber_label.innerHTML = "Climber Weight: "+w+" lbs";
-         }
- 
-         let bWSlider = document.getElementById("belayerWeight");
-         let belayer_label = document.getElementById("belayer-label");
-         bWSlider.oninput = (e) => {
+            climber_label.innerHTML = "Climber Weight: " + w + " lbs";
+        }
+
+        let bWSlider = document.getElementById("belayerWeight");
+        let belayer_label = document.getElementById("belayer-label");
+        bWSlider.oninput = (e) => {
             const w = e.target.value;
-            belayer_label.innerHTML = "Belayer Weight: "+w+" lbs";
-         }
- 
-         let cHSlider = document.getElementById("climberHeight");
-         let climber_height_label = document.getElementById("climber-height-label");
-         cHSlider.oninput = (e) => {
+            belayer_label.innerHTML = "Belayer Weight: " + w + " lbs";
+        }
+
+        let cHSlider = document.getElementById("climberHeight");
+        let climber_height_label = document.getElementById("climber-height-label");
+        cHSlider.oninput = (e) => {
             const h = e.target.value;
-            climber_height_label.innerHTML = "Climber Height: "+h+" meters";
+            climber_height_label.innerHTML = "Climber Height: " + h + " meters";
             // console.log(val);
             // console.log(b);
             this.climber.setPos(vec3(cX, h - 10, 0));
             this.belayer.setPos(vec3(bX, belayerHeight, 0));
-         }
- 
-         let pHSlider = document.getElementById("pulleyHeight");
-         let pulley_label = document.getElementById("pulley-height-label");
-         pHSlider.oninput = (e) => {
-             const h = e.target.value;
-            pulley_label.innerHTML = "Pulley/Quickdraw Height: "+ h+" meters";
+        }
+
+        let pHSlider = document.getElementById("pulleyHeight");
+        let pulley_label = document.getElementById("pulley-height-label");
+        pHSlider.oninput = (e) => {
+            const h = e.target.value;
+            pulley_label.innerHTML = "Pulley/Quickdraw Height: " + h + " meters";
             this.pulley.position = vec3(0, h - 10, 0);
-         }
+        }
 
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
@@ -91,34 +91,34 @@ export class Assignment3 extends Scene {
         // *** Materials
         this.materials = {
             test: new Material(new defs.Phong_Shader(),
-                {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+                { ambient: .4, diffusivity: .6, color: hex_color("#ffffff") }),
             test2: new Material(new Gouraud_Shader(),
-                {ambient: .4, diffusivity: .1, color: hex_color("#992828")}),
+                { ambient: .4, diffusivity: .1, color: hex_color("#992828") }),
             ring: new Material(new Ring_Shader(),
-                {ambient: 1, color: hex_color("#B08040")}),
-            sun: new Material(new defs.Phong_Shader(), 
-                {ambient: 1, color: hex_color("#ff0000")}),
-            planet1: new Material(new defs.Phong_Shader(), 
-                {ambient: 0, diffusivity: 1, color: hex_color("#808080")}),
-            planet2gouraud: new Material(new Gouraud_Shader(), 
-                {diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF")}),
-            planet2phong: new Material(new defs.Phong_Shader(), 
-                {diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF")}),
-            planet3: new Material(new defs.Phong_Shader(), 
-                {diffusivity: 1, specularity: 1, color: hex_color("#B08040")}),
-            planet4: new Material(new defs.Phong_Shader(), 
-                {specularity: 1, color: hex_color("#ADD8E6")}),
-            moon: new Material(new defs.Phong_Shader(), 
-                {diffusivity: 1, color: hex_color("#00ff00")}),
+                { ambient: 1, color: hex_color("#B08040") }),
+            sun: new Material(new defs.Phong_Shader(),
+                { ambient: 1, color: hex_color("#ff0000") }),
+            planet1: new Material(new defs.Phong_Shader(),
+                { ambient: 0, diffusivity: 1, color: hex_color("#808080") }),
+            planet2gouraud: new Material(new Gouraud_Shader(),
+                { diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF") }),
+            planet2phong: new Material(new defs.Phong_Shader(),
+                { diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF") }),
+            planet3: new Material(new defs.Phong_Shader(),
+                { diffusivity: 1, specularity: 1, color: hex_color("#B08040") }),
+            planet4: new Material(new defs.Phong_Shader(),
+                { specularity: 1, color: hex_color("#ADD8E6") }),
+            moon: new Material(new defs.Phong_Shader(),
+                { diffusivity: 1, color: hex_color("#00ff00") }),
             texture: new Material(new defs.Textured_Phong(), {
                 color: hex_color("#000000"),
                 ambient: 1, diffusivity: 0.1, specularity: 0.1,
                 texture: new Texture("assets/bg.png", "NEAREST")
             }),
             texture2: new Material(new defs.Textured_Phong(), {
-              color: hex_color("#000000"),
-              ambient: 1, diffusivity: 0.1, specularity: 0.1,
-              texture: new Texture("assets/earth.gif", "NEAREST")
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0.1,
+                texture: new Texture("assets/earth.gif", "NEAREST")
             }),
             ground_texture: new Material(new defs.Textured_Phong(), {
                 color: hex_color("#000000"),
@@ -129,6 +129,11 @@ export class Assignment3 extends Scene {
                 color: hex_color("#000000"),
                 ambient: 1, diffusivity: 0.1, specularity: 0.1,
                 texture: new Texture("assets/red-rock-texture.jpg", "NEAREST")
+            }),
+            rope_texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0,
+                texture: new Texture("assets/rope_texture.jpg", "NEAREST")
             }),
         }
 
@@ -151,7 +156,7 @@ export class Assignment3 extends Scene {
         this.key_triggered_button("Move anchor 1 right", ["l"], () => this.thrust[0][0] = 1, undefined, () => this.thrust[0][0] = 0);
         this.new_line();
         this.key_triggered_button("Toggle anchor 1", ["t"], () => this.rope.toggleAnchor(0));
-        
+
         this.new_line();
         this.key_triggered_button("Move anchor 2 up", ["Shift", "I"], () => this.thrust[1][1] = 1, undefined, () => this.thrust[1][1] = 0);
         this.key_triggered_button("Move anchor 2 down", ["Shift", "K"], () => this.thrust[1][1] = -1, undefined, () => this.thrust[1][1] = 0);
@@ -190,12 +195,12 @@ export class Assignment3 extends Scene {
         const light_position = vec4(10, 10, 10, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
 
-        model_transform = model_transform.times(Mat4.scale(100,100,100));
+        model_transform = model_transform.times(Mat4.scale(100, 100, 100));
         this.shapes.box.draw(context, program_state, model_transform, this.materials.texture);
         model_transform = Mat4.identity();
 
         // draw ground
-        model_transform = model_transform.times(Mat4.translation(0,FLOOR_HEIGHT,0).times(Mat4.scale(50,0.1,50)));
+        model_transform = model_transform.times(Mat4.translation(0, FLOOR_HEIGHT, 0).times(Mat4.scale(50, 0.1, 50)));
         this.shapes.box.draw(context, program_state, model_transform, this.materials.ground_texture);
         // model_transform = Mat4.identity();
 
@@ -204,10 +209,10 @@ export class Assignment3 extends Scene {
         // model_transform = Mat4.identity();
 
         // make sun
-        const light_size = 10**3; 
+        const light_size = 10 ** 3;
 
         // The parameters of the Light are: position, color, size
-        program_state.lights = [new Light(vec4(0,0,0,1), color(1,1,1,1.0), light_size)];
+        program_state.lights = [new Light(vec4(0, 0, 0, 1), color(1, 1, 1, 1.0), light_size)];
 
         // // TEST: Rope
         // for (let i = 0; i < this.rope.n; i++) {
@@ -220,18 +225,23 @@ export class Assignment3 extends Scene {
         const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 10, 1));
         this.shapes.box.draw(context, program_state, rock_transform, this.materials.rock_texture);
 
-        if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength && 
+        // finished free fall, transitioning into pulley system
+        if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength &&
             this.climber.body_loc[1] <= this.pulley.position[1]) {
-            console.log("in pulley system");
+
             this.climber.freeFall = false;
             this.belayer.freeFall = false;
+
             if (this.climber.dY != 0) {
-              this.climber.inPulley = true;
-              this.belayer.inPulley = true;
-              this.belayer.dY = -this.climber.dY;
-            
-              this.climber.tensionForces = -this.pulleyAcc;
-              this.belayer.tensionForces = this.pulleyAcc;
+                this.climber.inPulley = true;
+                this.belayer.inPulley = true;
+                const v = this.calcVelAfterCollision();
+                this.belayer.dY = v;
+                this.climber.dY = -v;
+
+                const pulleyAcc = this.getPulleyAcc();
+                this.climber.tensionForces = -pulleyAcc;
+                this.belayer.tensionForces = pulleyAcc;
             }
         }
         if (this.climber.inPulley && this.get_distance_between_climber_belayer() <= this.ropeLength) {
@@ -239,6 +249,7 @@ export class Assignment3 extends Scene {
             this.belayer.inPulley = false;
             this.climber.stopMoving();
             this.belayer.stopMoving();
+            console.log("distance between climber and belayer is longer than the rope");
         }
 
         // human
@@ -248,14 +259,10 @@ export class Assignment3 extends Scene {
 
         const belayer_body = this.belayer.getBody();
         this.shapes.among.draw(context, program_state, belayer_body[0], this.materials.test2);
-        // this.shapes.sphere.draw(context, program_state, belayer_body[1], this.materials.test2);\
-        if (this.climber.body_loc[1] >= FLOOR_HEIGHT + 2) {
-          this.climber.update(dt);
-          this.belayer.update(dt);
-        } else {
-          this.climber.stopMoving();
-          this.belayer.stopMoving();
-        }
+       
+        this.climber.update(dt);
+        this.belayer.update(dt);
+
 
 
 
@@ -263,9 +270,9 @@ export class Assignment3 extends Scene {
         this.belayer_transform = belayer_body[1];
 
         // TEST: Rope
-        for (let i = 0; i < this.rope.n; i++) {
+        for (let i = 1; i < this.rope.n -1; i++) { // don't draw the anchor points, since the climber and belayer are the anchor points
             const p = this.rope.getPoints()[i];
-            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
+            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.rope_texture);
         }
 
         // camera buttons
@@ -289,6 +296,21 @@ export class Assignment3 extends Scene {
         //         this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
         //     );
         // }
+    }
+
+    getPulleyAcc() {
+        const mc = this.climber.mass;
+        const mb = this.belayer.mass;
+        return ((mc - mb) * g - friction * (mc + mb)) / (mc + mb);
+    }
+
+    calcVelAfterCollision() {
+        const mc = this.climber.mass;
+        const mb = this.belayer.mass;
+        const vc = Math.abs(this.climber.dY);
+        const coll_v = mc * vc / (mc + mb);
+        const v = coll_v * (1 - belayerJ) + belayerJ * vc;
+        return v;
     }
 
     get_distance_between_climber_belayer() {
@@ -437,7 +459,7 @@ class Gouraud_Shader extends Shader {
         // within this function, one data field at a time, to fully initialize the shader for a draw.
 
         // Fill in any missing fields in the Material object with custom defaults for this shader:
-        const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40};
+        const defaults = { color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40 };
         material = Object.assign({}, defaults, material);
 
         this.send_material(context, gpu_addresses, material);

@@ -1,5 +1,5 @@
 import {defs, tiny} from './examples/common.js';
-import { FLOOR_HEIGHT, g } from './constants.js';
+import { FLOOR_HEIGHT, g, AMONG_US_WAIST_H } from './constants.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
@@ -8,7 +8,7 @@ const {
 // const g = 0.05; // gravity constant
 
 
-const body_r = 1;
+const body_r = 0.5;
 
 export class Person {
     constructor(x, y, z, mass, freeFall = true) {
@@ -42,6 +42,8 @@ export class Person {
     stopMoving() {
         this.dY = 0;
         this.dA = 0;
+        this.inPulley = false;
+        this.freeFall = false;
     }
 
     update(dt, thrust) {
@@ -56,27 +58,11 @@ export class Person {
 
         if (this.dY * (this.dY+this.dA) >= 0) {
             this.dY += this.dA;
-            // console.log("dY: "+this.dY);
-            // console.log("dA: "+this.dA);
-            // console.log("-----------------------------------------------");
-            this.body_loc= this.body_loc.plus(vec3(0, this.dY, 0));
+            const new_loc = this.body_loc.plus(vec3(0, this.dY, 0)); 
+            if (new_loc[1] < FLOOR_HEIGHT +AMONG_US_WAIST_H) {
+                new_loc[1] = FLOOR_HEIGHT + AMONG_US_WAIST_H;
+            }
+            this.body_loc = new_loc;
         }
-        
-        // if (this .freeFall && this.body_loc[1] - body_r > FLOOR_HEIGHT) {
-        //     // simulate fall using physics
-        //     this.dY -= g;
-        //     if (this.body_loc - body_r + this.dY < FLOOR_HEIGHT) {
-        //         this.dY = FLOOR_HEIGHT - (this.body_loc - body_r);
-        //     } 
-        //     this.body_loc= this.body_loc.plus(vec3(0, this.dY, 0));
-           
-        //     // simulate fall using verlet integration
-        //     // const new_loc = this.body_loc.times(2).minus(this.prev_body_loc)
-        //     //     .plus(vec3(0, -g * dt * dt, 0));
-        //     // this.prev_body_loc = this.body_loc;
-        //     // this.body_loc = new_loc[1] - body_r > FLOOR_HEIGHT ?
-        //     //     new_loc : vec3(this.body_loc[0], FLOOR_HEIGHT+body_r, this.body_loc[2]);
-            
-        // }
     }
 }
