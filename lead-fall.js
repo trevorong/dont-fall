@@ -1,5 +1,5 @@
 import { defs, tiny } from './examples/common.js';
-import { Shape_From_File } from './examples/obj-file-demo.js';
+import { Shape_From_File, AmongUs } from './examples/obj-file-demo.js';
 import { Person } from './person.js';
 import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, cX, bX, slack, cM, bM, friction, g, belayerJ } from './constants.js';
 import { Rope, Pulley, Point } from './rope.js';
@@ -8,7 +8,7 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
-export class Assignment3 extends Scene {
+export class DontFall extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
@@ -87,7 +87,7 @@ export class Assignment3 extends Scene {
             planet4: new defs.Subdivision_Sphere(4),
             moon: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(1),
             teapot: new Shape_From_File("assets/teapot.obj"),
-            among: new Shape_From_File("assets/amongus.obj"),
+            among: new AmongUs("assets/amongus2.obj"),
         };
 
         this.shapes.floor.arrays.texture_coord.forEach(v => v.scale_by(10));
@@ -261,7 +261,7 @@ export class Assignment3 extends Scene {
         // this.shapes.sphere.draw(context, program_state, body_parts[1], this.materials.test2);
 
         const belayer_body = this.belayer.getBody();
-        this.shapes.among.draw(context, program_state, belayer_body[0], this.materials.test2);
+        this.shapes.among.draw(context, program_state, belayer_body[0], this.materials.texture2);
        
         this.climber.update(dt);
         this.belayer.update(dt);

@@ -8,7 +8,7 @@ import {Surfaces_Demo} from "./examples/surfaces-demo.js"
 import {Text_Demo} from "./examples/text-demo.js"
 import {Transforms_Sandbox} from "./examples/transforms-sandbox.js"
 import { Shadow_Demo } from './examples/shadow-demo.js';
-import {Assignment3} from "./lead-fall.js";
+import {DontFall} from "./lead-fall.js";
 
 // Pull these names into this module's scope for convenience:
 const {
@@ -36,14 +36,14 @@ Object.assign(defs,
     {Text_Demo},
     {Transforms_Sandbox},
     {Shadow_Demo},
-    {Assignment3}
+    {DontFall}
 );
 
 // ******************** End extra step
 
 // (Can define Main_Scene's class here)
 
-const Main_Scene = Assignment3;
+const Main_Scene = DontFall;
 // const Main_Scene = Shadow_Demo;
 const Additional_Scenes = [];
 
