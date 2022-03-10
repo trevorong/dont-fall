@@ -44,7 +44,7 @@ export class Rope {
         if (p2) this.points[this.points.length - 1] = p2;
     }
 
-    update(dt, thrust, pulley) {
+    update(dt, thrust, pulley, floor_height) {
         // control step size in case of weirdness
         dt = Math.min(dt, 0.02);
         
@@ -103,12 +103,10 @@ export class Rope {
                 }
             }
 
-            // detect collision with floor
-            // if (floor)
-            for (let i = 0; i < n; i++) {
+            if (floor_height) for (let i = 0; i < n; i++) {
               const p = this.points[i];
-              const diff = p.position[1] - FLOOR_HEIGHT;
-              const dist = (diff - p.radius);
+              const diff = p.position.minus(vec3(0,floor_height,0));
+              const dist = (diff.norm() - (p.radius));
               if (dist < 0) {
                   const dir = vec3(0,1,0);
                   const vec = dir.times(dist);

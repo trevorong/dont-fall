@@ -79,6 +79,8 @@ export class Assignment3 extends Scene {
             sphere: new defs.Subdivision_Sphere(4),
             circle: new defs.Regular_2D_Polygon(1, 15),
             box: new defs.Cube(),
+            floor: new defs.Cube(),
+            rockwall: new defs.Cube(),
             planet1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
             planet2: new defs.Subdivision_Sphere(3),
             planet3: new defs.Subdivision_Sphere(4),
@@ -87,6 +89,8 @@ export class Assignment3 extends Scene {
             teapot: new Shape_From_File("assets/teapot.obj"),
             among: new Shape_From_File("assets/amongus.obj"),
         };
+
+        this.shapes.floor.arrays.texture_coord.forEach(v => v.scale_by(10));
 
         // *** Materials
         this.materials = {
@@ -116,9 +120,9 @@ export class Assignment3 extends Scene {
                 texture: new Texture("assets/bg.png", "NEAREST")
             }),
             texture2: new Material(new defs.Textured_Phong(), {
-                color: hex_color("#000000"),
-                ambient: 1, diffusivity: 0.1, specularity: 0.1,
-                texture: new Texture("assets/earth.gif", "NEAREST")
+              color: hex_color("#000000"),
+              ambient: 1, diffusivity: 0.1, specularity: 0.1,
+              texture: new Texture("assets/amongus.jpg", "NEAREST")
             }),
             ground_texture: new Material(new defs.Textured_Phong(), {
                 color: hex_color("#000000"),
@@ -131,9 +135,8 @@ export class Assignment3 extends Scene {
                 texture: new Texture("assets/red-rock-texture.jpg", "NEAREST")
             }),
             rope_texture: new Material(new defs.Textured_Phong(), {
-                color: hex_color("#000000"),
-                ambient: 1, diffusivity: 0.1, specularity: 0,
-                texture: new Texture("assets/rope_texture.jpg", "NEAREST")
+                color: hex_color("#964B00"),
+                ambient: 0, diffusivity: 0.5, specularity: 1,
             }),
         }
 
@@ -200,8 +203,8 @@ export class Assignment3 extends Scene {
         model_transform = Mat4.identity();
 
         // draw ground
-        model_transform = model_transform.times(Mat4.translation(0, FLOOR_HEIGHT, 0).times(Mat4.scale(50, 0.1, 50)));
-        this.shapes.box.draw(context, program_state, model_transform, this.materials.ground_texture);
+        model_transform = model_transform.times(Mat4.translation(0,FLOOR_HEIGHT,0).times(Mat4.scale(50,0.1,50)));
+        this.shapes.floor.draw(context, program_state, model_transform, this.materials.ground_texture);
         // model_transform = Mat4.identity();
 
         // model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
@@ -222,8 +225,8 @@ export class Assignment3 extends Scene {
 
 
         // rock wall
-        const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 10, 1));
-        this.shapes.box.draw(context, program_state, rock_transform, this.materials.rock_texture);
+        const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 20, 1));
+        this.shapes.rockwall.draw(context, program_state, rock_transform, this.materials.rock_texture);
 
         // finished free fall, transitioning into pulley system
         if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength &&
@@ -263,9 +266,6 @@ export class Assignment3 extends Scene {
         this.climber.update(dt);
         this.belayer.update(dt);
 
-
-
-
         this.climber_transform = body_parts[1];  // attach camera to head of climber and not its body
         this.belayer_transform = belayer_body[1];
 
@@ -283,7 +283,7 @@ export class Assignment3 extends Scene {
         //   program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
         // }
 
-        this.rope.update(dt, this.thrust, this.pulley);
+        this.rope.update(dt, this.thrust, this.pulley, FLOOR_HEIGHT);
         this.rope.setAnchors(new Point(this.climber.body_loc), new Point(this.belayer.body_loc));
         this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
 
@@ -466,6 +466,86 @@ class Gouraud_Shader extends Shader {
         this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform);
     }
 }
+// class Normal_Map extends Shader {
+//   update_GPU(context, gpu_addresses, graphics_state, model_transform, material) {
+//       // update_GPU():  Defining how to synchronize our JavaScript's variables to the GPU's:
+//       const [P, C, M] = [graphics_state.projection_transform, graphics_state.camera_inverse, model_transform],
+//           PCM = P.times(C).times(M);
+//       context.uniformMatrix4fv(gpu_addresses.model_transform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
+//       context.uniformMatrix4fv(gpu_addresses.projection_camera_model_transform, false,
+//           Matrix.flatten_2D_to_1D(PCM.transposed()));
+//   }
+
+//   shared_glsl_code() {
+//       // ********* SHARED CODE, INCLUDED IN BOTH SHADERS *********
+//       return `
+//       precision mediump float;
+//       varying vec4 point_position;
+//       varying vec4 center;
+//       `;
+//   }
+
+//   vertex_glsl_code() {
+//       // ********* VERTEX SHADER *********
+//       // Complete the main function of the vertex shader.
+//       return this.shared_glsl_code() + `
+//       attribute vec3 position;
+//       uniform mat4 model_transform;
+//       uniform mat4 projection_camera_model_transform;
+//       void main(){
+
+//         texture_coordinates = textcoord;
+//         fragment_position = vec3(model * vec4(position,1.0));
+     
+//         mat3 normalMatrix = transpose(inverse(mat3(model)));
+//         vec3 T = normalize(normalMatrix * tangent);
+//         vec3 N = normalize(normalMatrix * normal);
+//         T = normalize(T - dot(T, N) * N);
+//         vec3 B = cross(N, T);
+//         mat3 TBN = transpose(mat3(T,B,N));
+//         view_position =  TBN * viewPos; // camera position
+//         light_position = TBN * lightPos; // light position
+//         fragment_position = TBN * fragment_position;
+       
+//         gl_Position = projection * view * model * vec4(position,1.0);
+//      }`;
+//   }
+
+//   fragment_glsl_code() {
+//       // ********* FRAGMENT SHADER *********
+//       // Complete the main function of the fragment shader.
+//       return this.shared_glsl_code() + `
+//       void main() {
+//         vec3 Normal = texture(TextSamplerNormals,texture_coordinates).rgb; // extract normal
+//         Normal = normalize(Normal * 2.0 - 1.0); // correct range
+//         material_color = texture2D(TextSampler,texture_coordinates.st); // diffuse map
+    
+//         vec3 I_amb = AmbientLight.color * AmbientLight.intensity;
+//         vec3 lightDir = normalize(light_position - fragment_position);
+    
+//         vec3 I_dif = vec3(0,0,0);
+//         float DiffusiveFactor = max(dot(lightDir,Normal),0.0);
+//         vec3 I_spe = vec3(0,0,0);
+//         float SpecularFactor = 0.0;
+    
+//         if (DiffusiveFactor>0.0) {
+//            I_dif = DiffusiveLight.color * DiffusiveLight.intensity * DiffusiveFactor;
+    
+//            vec3 vertex_to_eye = normalize(view_position - fragment_position); 
+//            vec3 light_reflect = reflect(-lightDir,Normal);
+//            light_reflect = normalize(light_reflect);
+    
+//            SpecularFactor = pow(max(dot(vertex_to_eye,light_reflect),0.0),SpecularLight.power);
+//            if (SpecularFactor>0.0)  {
+//                I_spe = DiffusiveLight.color * SpecularLight.intensity * SpecularFactor;
+//            }
+//        }
+    
+//        color = vec4(material_color.rgb * (I_amb + I_dif + I_spe),material_color.a);
+    
+//       }`;
+//   }
+// }
 
 class Ring_Shader extends Shader {
     update_GPU(context, gpu_addresses, graphics_state, model_transform, material) {
