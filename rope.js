@@ -103,16 +103,17 @@ export class Rope {
                 }
             }
 
+            // detect collision with floor
             for (let i = 0; i < n; i++) {
               const p = this.points[i];
               const diff = p.position[1] - FLOOR_HEIGHT;
-              const dist = diff - p.radius;
+              const dist = (diff - p.radius);
               if (dist < 0) {
                   const dir = vec3(0,1,0);
                   const vec = dir.times(dist);
                   p.position = p.position.minus(vec);
               }
-          }
+            }
         }
     }
 }
