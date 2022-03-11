@@ -3,7 +3,7 @@ CS 174A Winter 2022
 Created by Justin He, Trevor Ong, Darren Zhang
 
 ## STARTING THE PROJECT
-To run the project, run "./host.command" (if on MacOS) or ./host.bat (if on windows) in the root project directory. Once executed, the project should be accessable on a web browser at "http://localhost:8000/". 
+To run the project, run `./host.command` (if on MacOS) or `./host.bat` (if on windows) in the root project directory. Once executed, the project should be accessable on a web browser at "http://localhost:8000/". 
 
 ## GAME INSTRUCTIONS
 The game scene consists of a pulley (teapot), rock wall, ground, two climbers, and a rope. The player can control parameters of the system using sliders at the top, with the parameters being the climber weight, belayer weight, climber starting fall height, and the pulley/quickdraw height. Camera control keys are available in the panel below the scene which attach to either the main scene, climber perspective, or belayer perspective.
