@@ -103,10 +103,10 @@ export class Rope {
                 }
             }
 
-            if (floor_height) for (let i = 0; i < n; i++) {
+            for (let i = 0; i < n; i++) {
               const p = this.points[i];
-              const diff = p.position.minus(vec3(0,floor_height,0));
-              const dist = (diff.norm() - (p.radius));
+              const diff = p.position[1] - FLOOR_HEIGHT;
+              const dist = diff - p.radius;
               if (dist < 0) {
                   const dir = vec3(0,1,0);
                   const vec = dir.times(dist);

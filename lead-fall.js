@@ -29,12 +29,12 @@ export class Assignment3 extends Scene {
 
         // this.pulleyAcc = ((cM - bM) * g - friction * (cM + bM)) / (cM + bM);
 
-        this.rope = new Rope(50, this.ropeLength, startLoc, belayerLoc, false, 0.2);
+        this.rope = new Rope(90, this.ropeLength, startLoc, belayerLoc, false, 0.2);
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
         this.pulley = new Pulley(pulleyLoc, 1);
 
-        this.climber = new Person(...startLoc, cM, false);
-        this.belayer = new Person(...belayerLoc, bM, false);
+        this.climber = new Person(...startLoc, cM, false, this.pulley, true);
+        this.belayer = new Person(...belayerLoc, bM, false, this.pulley, false);
 
 
         // sliders
@@ -43,6 +43,7 @@ export class Assignment3 extends Scene {
         cWSlider.oninput = (e) => {
             const w = e.target.value;
             climber_label.innerHTML = "Climber Weight: " + w + " lbs";
+            this.climber.mass = w/10;
         }
 
         let bWSlider = document.getElementById("belayerWeight");
@@ -50,6 +51,7 @@ export class Assignment3 extends Scene {
         bWSlider.oninput = (e) => {
             const w = e.target.value;
             belayer_label.innerHTML = "Belayer Weight: " + w + " lbs";
+            this.belayer.mass = w/10;
         }
 
         let cHSlider = document.getElementById("climberHeight");
@@ -174,8 +176,7 @@ export class Assignment3 extends Scene {
             this.rope.toggleAnchor();
         });
         this.key_triggered_button("Make climber fall", ["Shift", "D"], () => {
-            console.log("climber fall triggered");
-            this.climber.freeFall = true;
+            if (this.belayer.onFloor()) this.climber.freeFall = true;
         });
     }
 
@@ -231,29 +232,31 @@ export class Assignment3 extends Scene {
         // finished free fall, transitioning into pulley system
         if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength &&
             this.climber.body_loc[1] <= this.pulley.position[1]) {
-
+            console.log("finished free fall");
             this.climber.freeFall = false;
             this.belayer.freeFall = false;
 
-            if (this.climber.dY != 0) {
+            if (this.climber.dV != 0) {
+                console.log("moving into pulley system");
                 this.climber.inPulley = true;
                 this.belayer.inPulley = true;
                 const v = this.calcVelAfterCollision();
-                this.belayer.dY = v;
-                this.climber.dY = -v;
+                this.belayer.dV = v;
+                this.climber.dV = -v;
 
                 const pulleyAcc = this.getPulleyAcc();
                 this.climber.tensionForces = -pulleyAcc;
                 this.belayer.tensionForces = pulleyAcc;
             }
         }
-        if (this.climber.inPulley && this.get_distance_between_climber_belayer() <= this.ropeLength) {
-            this.climber.inPulley = false;
-            this.belayer.inPulley = false;
-            this.climber.stopMoving();
-            this.belayer.stopMoving();
-            console.log("distance between climber and belayer is longer than the rope");
-        }
+        // if (this.climber.inPulley && this.get_distance_between_climber_belayer() <= this.ropeLength) {
+        //     console.log("finished pulley system, now we are stopped");
+        //     this.climber.inPulley = false;
+        //     this.belayer.inPulley = false;
+        //     this.climber.stopFalling();
+        //     this.belayer.stopFalling();
+        //     console.log("distance between climber and belayer is longer than the rope");
+        // }
 
         // human
         const body_parts = this.climber.getBody();
@@ -307,7 +310,7 @@ export class Assignment3 extends Scene {
     calcVelAfterCollision() {
         const mc = this.climber.mass;
         const mb = this.belayer.mass;
-        const vc = Math.abs(this.climber.dY);
+        const vc = Math.abs(this.climber.dV);
         const coll_v = mc * vc / (mc + mb);
         const v = coll_v * (1 - belayerJ) + belayerJ * vc;
         return v;
