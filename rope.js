@@ -113,7 +113,7 @@ export class Rope {
                   const vec = dir.times(dist);
                   p.position = p.position.minus(vec);
               }
-          }
+            }
         }
     }
 }
