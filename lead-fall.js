@@ -12,22 +12,10 @@ export class DontFall extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
-
-        // this.rope = new Rope(60, 25, vec3(-25/2, 1, 0));
-        // constants to play with/user adjustable
-        // const climberHeight = 5;
-        // const pulleyHeight = 0;
-        // const belayerHeight = -5;
         const startLoc = vec3(cX, climberHeight, 0);
         const belayerLoc = vec3(bX, belayerHeight, 0);
         const pulleyLoc = vec3(0, pulleyHeight, 0);
-        // const slack = 3;
         this.ropeLength = slack + startLoc.minus(pulleyLoc).norm() + pulleyLoc.minus(belayerLoc).norm();
-        // const climberMass = 150;
-        // const belayerMass = 140;
-        // const frictionConstant = 0.3;
-
-        // this.pulleyAcc = ((cM - bM) * g - friction * (cM + bM)) / (cM + bM);
 
         this.rope = new Rope(90, this.ropeLength, startLoc, belayerLoc, false, 0.2);
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
@@ -163,26 +151,6 @@ export class DontFall extends Scene {
           this.sunX = Math.min(this.sunX + 1, 15);
         });
         this.new_line();
-        // this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
-        // this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
-        // this.new_line();
-        // this.key_triggered_button("Move anchor 1 left", ["j"], () => this.thrust[0][0] = -1, undefined, () => this.thrust[0][0] = 0);
-        // this.key_triggered_button("Move anchor 1 right", ["l"], () => this.thrust[0][0] = 1, undefined, () => this.thrust[0][0] = 0);
-        // this.new_line();
-        // this.key_triggered_button("Toggle anchor 1", ["t"], () => this.rope.toggleAnchor(0));
-        // this.new_line();
-        // this.key_triggered_button("Move anchor 2 up", ["Shift", "I"], () => this.thrust[1][1] = 1, undefined, () => this.thrust[1][1] = 0);
-        // this.key_triggered_button("Move anchor 2 down", ["Shift", "K"], () => this.thrust[1][1] = -1, undefined, () => this.thrust[1][1] = 0);
-        // this.new_line();
-        // this.key_triggered_button("Move anchor 2 left", ["Shift", "J"], () => this.thrust[1][0] = -1, undefined, () => this.thrust[1][0] = 0);
-        // this.key_triggered_button("Move anchor 2 right", ["Shift", "L"], () => this.thrust[1][0] = 1, undefined, () => this.thrust[1][0] = 0);
-        // this.new_line();
-        // this.key_triggered_button("Toggle anchor 2", ["Shift", "T"], () => this.rope.toggleAnchor());
-        // this.new_line();
-        // this.key_triggered_button("Toggle both anchors", ["Shift", "P"], () => {
-        //     this.rope.toggleAnchor(0);
-        //     this.rope.toggleAnchor();
-        // });
         this.key_triggered_button("Make climber fall", ["Shift", "D"], () => {
             if (this.belayer.onFloor()) this.climber.freeFall = true;
         });
@@ -218,18 +186,6 @@ export class DontFall extends Scene {
         // draw ground
         model_transform = model_transform.times(Mat4.translation(0,FLOOR_HEIGHT,0).times(Mat4.scale(50,0.1,50)));
         this.shapes.floor.draw(context, program_state, model_transform, this.materials.ground_texture);
-        // model_transform = Mat4.identity();
-
-        // model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
-        // this.shapes.teapot.draw(context, program_state, model_transform, this.materials.test);
-        // model_transform = Mat4.identity();
-
-        // // TEST: Rope
-        // for (let i = 0; i < this.rope.n; i++) {
-        //     const p = this.rope.getPoints()[i];
-        //     this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
-        // }
-
 
         // rock wall
         const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 20, 1));
@@ -238,12 +194,10 @@ export class DontFall extends Scene {
         // finished free fall, transitioning into pulley system
         if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength &&
             this.climber.body_loc[1] <= this.pulley.position[1]) {
-            console.log("finished free fall");
             this.climber.freeFall = false;
             this.belayer.freeFall = false;
 
             if (this.climber.dV != 0) {
-                console.log("moving into pulley system");
                 this.climber.inPulley = true;
                 this.belayer.inPulley = true;
                 const v = this.calcVelAfterCollision();
@@ -255,19 +209,10 @@ export class DontFall extends Scene {
                 this.belayer.tensionForces = pulleyAcc;
             }
         }
-        // if (this.climber.inPulley && this.get_distance_between_climber_belayer() <= this.ropeLength) {
-        //     console.log("finished pulley system, now we are stopped");
-        //     this.climber.inPulley = false;
-        //     this.belayer.inPulley = false;
-        //     this.climber.stopFalling();
-        //     this.belayer.stopFalling();
-        //     console.log("distance between climber and belayer is longer than the rope");
-        // }
 
         // human
         const body_parts = this.climber.getBody();
         this.shapes.among.draw(context, program_state, body_parts[0], this.materials.texture2);
-        // this.shapes.sphere.draw(context, program_state, body_parts[1], this.materials.test2);
 
         const belayer_body = this.belayer.getBody();
         this.shapes.among.draw(context, program_state, belayer_body[0], this.materials.texture2);
