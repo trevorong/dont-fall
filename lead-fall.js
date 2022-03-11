@@ -43,7 +43,7 @@ export class DontFall extends Scene {
         cWSlider.oninput = (e) => {
             const w = e.target.value;
             climber_label.innerHTML = "Climber Weight: " + w + " lbs";
-            this.climber.mass = w/10;
+            this.climber.mass = w*10;
         }
 
         let bWSlider = document.getElementById("belayerWeight");
@@ -51,7 +51,7 @@ export class DontFall extends Scene {
         bWSlider.oninput = (e) => {
             const w = e.target.value;
             belayer_label.innerHTML = "Belayer Weight: " + w + " lbs";
-            this.belayer.mass = w/10;
+            this.belayer.mass = w*10;
         }
 
         let cHSlider = document.getElementById("climberHeight");
