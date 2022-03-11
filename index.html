@@ -10,6 +10,27 @@
 </head>
 <body style="background: White">
 <!-- Begin typing your web page here. -->
+
+<div class="sliders">
+    <div class="slider-box">
+        <span id="climber-label">Climber Weight: 150 lbs</span>
+        <input type="range" min="50" max="200" value="150" class="slider" id="climberWeight">
+    </div>
+    <div class="slider-box">
+        <span id="belayer-label">Belayer Weight: 130 lbs</span>
+        <input type="range" min="50" max="200" value="130" class="slider" id="belayerWeight">
+    </div>
+    <div class="slider-box">
+        <span id="climber-height-label">Climber Height: 15 meters</span>
+        <input type="range" min="1" max="20" value="15" class="slider" id="climberHeight">
+    </div>
+    <div class="slider-box">
+        <span id="pulley-height-label">Pulley/Quickdraw Height: 10 meters</span>
+        <input type="range" min="1" max="20" value="10" class="slider" id="pulleyHeight">
+    </div>
+</div>
+<script src="sliders.js" ></script>
+
 <!-- The following code embeds a WebGL canvas panel, loads certain scene(s), and displays panel(s) of their controls.-->
 <div class="canvas-widget" id="main-canvas"></div>
 <script type=module>

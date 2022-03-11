@@ -1,6 +1,8 @@
-import {defs, tiny} from './examples/common.js';
-import {Shape_From_File} from './examples/obj-file-demo.js';
-import {Rope, Pulley} from './experimental.js';
+import { defs, tiny } from './examples/common.js';
+import { Shape_From_File, AmongUs } from './examples/obj-file-demo.js';
+import { Person } from './person.js';
+import { FLOOR_HEIGHT, climberHeight, pulleyHeight, belayerHeight, cX, bX, slack, cM, bM, friction, g, belayerJ } from './constants.js';
+import { Rope, Pulley, Point } from './rope.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -10,11 +12,56 @@ export class DontFall extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
+        const startLoc = vec3(cX, climberHeight, 0);
+        const belayerLoc = vec3(bX, belayerHeight, 0);
+        const pulleyLoc = vec3(0, pulleyHeight, 0);
+        this.ropeLength = slack + startLoc.minus(pulleyLoc).norm() + pulleyLoc.minus(belayerLoc).norm();
 
-        const L = 30;
-        this.rope = new Rope(L*2, L, vec3(-L/2, 1, 0));
+        this.rope = new Rope(90, this.ropeLength, startLoc, belayerLoc, false, 0.2);
         this.thrust = [vec3(0, 0, 0), vec3(0, 0, 0)];
-        this.pulleys = [new Pulley(vec3(0, 0, 0), 1), new Pulley(vec3(0, 4, 0), 1)];
+        this.pulley = new Pulley(pulleyLoc, 1);
+
+        this.climber = new Person(...startLoc, cM, false, this.pulley, true);
+        this.belayer = new Person(...belayerLoc, bM, false, this.pulley, false);
+
+        this.sunX = 10;
+
+        // sliders
+        let cWSlider = document.getElementById("climberWeight");
+        let climber_label = document.getElementById("climber-label");
+        cWSlider.oninput = (e) => {
+            const w = e.target.value;
+            climber_label.innerHTML = "Climber Weight: " + w + " lbs";
+            this.climber.mass = w*10;
+        }
+
+        let bWSlider = document.getElementById("belayerWeight");
+        let belayer_label = document.getElementById("belayer-label");
+        bWSlider.oninput = (e) => {
+            const w = e.target.value;
+            belayer_label.innerHTML = "Belayer Weight: " + w + " lbs";
+            this.belayer.mass = w*10;
+        }
+
+        let cHSlider = document.getElementById("climberHeight");
+        let climber_height_label = document.getElementById("climber-height-label");
+        cHSlider.oninput = (e) => {
+            const h = e.target.value;
+            climber_height_label.innerHTML = "Climber Height: " + h + " meters";
+            // console.log(val);
+            // console.log(b);
+            this.climber.setPos(vec3(cX, h - 10, 0));
+            this.belayer.setPos(vec3(bX, belayerHeight, 0));
+        }
+
+        let pHSlider = document.getElementById("pulleyHeight");
+        let pulley_label = document.getElementById("pulley-height-label");
+        pHSlider.oninput = (e) => {
+            const h = e.target.value;
+            pulley_label.innerHTML = "Pulley/Quickdraw Height: " + h + " meters";
+            this.pulley.position = vec3(0, h - 10, 0);
+        }
+
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
@@ -23,36 +70,41 @@ export class DontFall extends Scene {
             sphere: new defs.Subdivision_Sphere(4),
             circle: new defs.Regular_2D_Polygon(1, 15),
             box: new defs.Cube(),
+            floor: new defs.Cube(),
+            rockwall: new defs.Cube(),
             planet1: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
             planet2: new defs.Subdivision_Sphere(3),
             planet3: new defs.Subdivision_Sphere(4),
             planet4: new defs.Subdivision_Sphere(4),
             moon: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(1),
             teapot: new Shape_From_File("assets/teapot.obj"),
+            among: new AmongUs("assets/amongus2.obj"),
         };
+
+        this.shapes.floor.arrays.texture_coord.forEach(v => v.scale_by(10));
 
         // *** Materials
         this.materials = {
             test: new Material(new defs.Phong_Shader(),
-                {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+                { ambient: .4, diffusivity: .6, color: hex_color("#ffffff") }),
             test2: new Material(new Gouraud_Shader(),
-                {ambient: .4, diffusivity: .6, color: hex_color("#992828")}),
+                { ambient: .4, diffusivity: .1, color: hex_color("#992828") }),
             ring: new Material(new Ring_Shader(),
-                {ambient: 1, color: hex_color("#B08040")}),
-            sun: new Material(new defs.Phong_Shader(), 
-                {ambient: 1, color: hex_color("#ff0000")}),
-            planet1: new Material(new defs.Phong_Shader(), 
-                {ambient: 0, diffusivity: 1, color: hex_color("#808080")}),
-            planet2gouraud: new Material(new Gouraud_Shader(), 
-                {diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF")}),
-            planet2phong: new Material(new defs.Phong_Shader(), 
-                {diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF")}),
-            planet3: new Material(new defs.Phong_Shader(), 
-                {diffusivity: 1, specularity: 1, color: hex_color("#B08040")}),
-            planet4: new Material(new defs.Phong_Shader(), 
-                {specularity: 1, color: hex_color("#ADD8E6")}),
-            moon: new Material(new defs.Phong_Shader(), 
-                {diffusivity: 1, color: hex_color("#00ff00")}),
+                { ambient: 1, color: hex_color("#B08040") }),
+            sun: new Material(new defs.Phong_Shader(),
+                { ambient: 1, color: hex_color("#ffffff") }),
+            planet1: new Material(new defs.Phong_Shader(),
+                { ambient: 0, diffusivity: 1, color: hex_color("#808080") }),
+            planet2gouraud: new Material(new Gouraud_Shader(),
+                { diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF") }),
+            planet2phong: new Material(new defs.Phong_Shader(),
+                { diffusivity: 0.3, specularity: 1, color: hex_color("#80FFFF") }),
+            planet3: new Material(new defs.Phong_Shader(),
+                { diffusivity: 1, specularity: 1, color: hex_color("#B08040") }),
+            planet4: new Material(new defs.Phong_Shader(),
+                { specularity: 1, color: hex_color("#ADD8E6") }),
+            moon: new Material(new defs.Phong_Shader(),
+                { diffusivity: 1, color: hex_color("#00ff00") }),
             texture: new Material(new defs.Textured_Phong(), {
                 color: hex_color("#000000"),
                 ambient: 1, diffusivity: 0.1, specularity: 0.1,
@@ -60,40 +112,48 @@ export class DontFall extends Scene {
             }),
             texture2: new Material(new defs.Textured_Phong(), {
               color: hex_color("#000000"),
-              ambient: 1, diffusivity: 0.1, specularity: 0.1,
-              texture: new Texture("assets/earth.gif", "NEAREST")
+              ambient: 1, diffusivity: 0.7, specularity: 1,
+              texture: new Texture("assets/amongus.jpg", "NEAREST")
+            }),
+            ground_texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0.1,
+                texture: new Texture("assets/Grass_1.png", "NEAREST")
+            }),
+            rock_texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, diffusivity: 0.1, specularity: 0.3,
+                texture: new Texture("assets/red-rock-texture.jpg", "NEAREST")
+            }),
+            rope_texture: new Material(new defs.Textured_Phong(), {
+                color: hex_color("#964B00"),
+                ambient: 0, diffusivity: 0.5, specularity: 1,
             }),
         }
 
-        this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        // Mat4.look_at(eye pos, at point pos, up vector)
+        this.initial_camera_location = Mat4.look_at(vec3(0, 3, 30), vec3(0, 0, 0), vec3(0, 1, 0));
     }
 
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
+        this.key_triggered_button("View main scene", ["Control", "0"], () => this.attached = () => null);
         this.new_line();
-        this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
-        this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
+        this.key_triggered_button("Attach camera to Climber", ["Control", "1"], () => this.attached = () => this.climber_transform);
         this.new_line();
-        this.key_triggered_button("Move anchor 1 left", ["j"], () => this.thrust[0][0] = -1, undefined, () => this.thrust[0][0] = 0);
-        this.key_triggered_button("Move anchor 1 right", ["l"], () => this.thrust[0][0] = 1, undefined, () => this.thrust[0][0] = 0);
+        this.key_triggered_button("Attach camera to Belayer", ["Control", "2"], () => this.attached = () => this.belayer_transform);
         this.new_line();
-        this.key_triggered_button("Toggle anchor 1", ["t"], () => this.rope.toggleAnchor(0));
-        
-        this.new_line();
-        this.key_triggered_button("Move anchor 2 up", ["Shift", "I"], () => this.thrust[1][1] = 1, undefined, () => this.thrust[1][1] = 0);
-        this.key_triggered_button("Move anchor 2 down", ["Shift", "K"], () => this.thrust[1][1] = -1, undefined, () => this.thrust[1][1] = 0);
-        this.new_line();
-        this.key_triggered_button("Move anchor 2 left", ["Shift", "J"], () => this.thrust[1][0] = -1, undefined, () => this.thrust[1][0] = 0);
-        this.key_triggered_button("Move anchor 2 right", ["Shift", "L"], () => this.thrust[1][0] = 1, undefined, () => this.thrust[1][0] = 0);
-        this.new_line();
-        this.key_triggered_button("Toggle anchor 2", ["Shift", "T"], () => this.rope.toggleAnchor());
-        this.new_line();
-        this.key_triggered_button("Toggle both anchors", ["Shift", "P"], () => {
-            this.rope.toggleAnchor(0);
-            this.rope.toggleAnchor();
+        this.key_triggered_button("Move sun left", ["j"], () => {
+          this.sunX = Math.max(this.sunX - 1, -15);
         });
-
+        this.new_line();
+        this.key_triggered_button("Move sun right", ["l"], () => {
+          this.sunX = Math.min(this.sunX + 1, 15);
+        });
+        this.new_line();
+        this.key_triggered_button("Make climber fall", ["Shift", "D"], () => {
+            if (this.belayer.onFloor()) this.climber.freeFall = true;
+        });
     }
 
     display(context, program_state) {
@@ -112,39 +172,93 @@ export class DontFall extends Scene {
         let model_transform = Mat4.identity();
 
         // draw skybox
-        const light_position = vec4(10, 10, 10, 1);
+        // The parameters of the Light are: position, color, size
+        const light_position = vec4(this.sunX, 10, 10, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
 
-        model_transform = model_transform.times(Mat4.scale(100,100,100));
+        const sun_transform = Mat4.identity().times(Mat4.translation(this.sunX,6,10));
+        this.shapes.sphere.draw(context, program_state, sun_transform, this.materials.sun);
+
+        model_transform = model_transform.times(Mat4.scale(100, 100, 100));
         this.shapes.box.draw(context, program_state, model_transform, this.materials.texture);
         model_transform = Mat4.identity();
 
         // draw ground
-        model_transform = model_transform.times(Mat4.translation(0,-20,0).times(Mat4.scale(50,0.1,50)));
-        this.shapes.box.draw(context, program_state, model_transform, this.materials.texture2);
-        // model_transform = Mat4.identity();
+        model_transform = model_transform.times(Mat4.translation(0,FLOOR_HEIGHT,0).times(Mat4.scale(50,0.1,50)));
+        this.shapes.floor.draw(context, program_state, model_transform, this.materials.ground_texture);
 
-        // model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
-        // this.shapes.teapot.draw(context, program_state, model_transform, this.materials.test);
-        // model_transform = Mat4.identity();
+        // rock wall
+        const rock_transform = Mat4.identity().times(Mat4.translation(0, 0, -2)).times(Mat4.scale(20, 20, 1));
+        this.shapes.rockwall.draw(context, program_state, rock_transform, this.materials.rock_texture);
 
-        // make sun
-        const light_size = 10**3; 
+        // finished free fall, transitioning into pulley system
+        if (this.climber.freeFall && this.get_distance_between_climber_belayer() >= this.ropeLength &&
+            this.climber.body_loc[1] <= this.pulley.position[1]) {
+            this.climber.freeFall = false;
+            this.belayer.freeFall = false;
 
-        // The parameters of the Light are: position, color, size
-        program_state.lights = [new Light(vec4(0,0,0,1), color(1,1,1,1.0), light_size)];
+            if (this.climber.dV != 0) {
+                this.climber.inPulley = true;
+                this.belayer.inPulley = true;
+                const v = this.calcVelAfterCollision();
+                this.belayer.dV = v;
+                this.climber.dV = -v;
+
+                const pulleyAcc = this.getPulleyAcc();
+                this.climber.tensionForces = -pulleyAcc;
+                this.belayer.tensionForces = pulleyAcc;
+            }
+        }
+
+        // human
+        const body_parts = this.climber.getBody();
+        this.shapes.among.draw(context, program_state, body_parts[0], this.materials.texture2);
+
+        const belayer_body = this.belayer.getBody();
+        this.shapes.among.draw(context, program_state, belayer_body[0], this.materials.texture2);
+       
+        this.climber.update(dt);
+        this.belayer.update(dt);
+
+        this.climber_transform = body_parts[1];  // attach camera to head of climber and not its body
+        this.belayer_transform = belayer_body[1];
 
         // TEST: Rope
-        for (let i = 0; i < this.rope.n; i++) {
+        for (let i = 1; i < this.rope.n -1; i++) { // don't draw the anchor points, since the climber and belayer are the anchor points
             const p = this.rope.getPoints()[i];
-            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.test);
-        }
-        this.rope.update(dt, this.thrust, this.pulleys);
-        for (let i = 0; i < this.pulleys.length; i++) {
-            const pulley = this.pulleys[i];
-            this.shapes.teapot.draw(context, program_state, pulley.transform(), this.materials.test);
+            this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.rope_texture);
         }
 
+        //camera buttons
+        const desired = this.attached;
+        if (desired && desired()) {
+          program_state.camera_inverse = Mat4.inverse(desired().times(Mat4.rotation(1,-0.5,0,0).times(Mat4.translation(0,-5,20)))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
+        } else {
+          program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
+        }
+
+        this.rope.update(dt, this.thrust, this.pulley, FLOOR_HEIGHT);
+        this.rope.setAnchors(new Point(this.climber.body_loc), new Point(this.belayer.body_loc));
+        this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
+    }
+
+    getPulleyAcc() {
+        const mc = this.climber.mass;
+        const mb = this.belayer.mass;
+        return ((mc - mb) * g - friction * (mc + mb)) / (mc + mb);
+    }
+
+    calcVelAfterCollision() {
+        const mc = this.climber.mass;
+        const mb = this.belayer.mass;
+        const vc = Math.abs(this.climber.dV);
+        const coll_v = mc * vc / (mc + mb);
+        const v = coll_v * (1 - belayerJ) + belayerJ * vc;
+        return v;
+    }
+
+    get_distance_between_climber_belayer() {
+        return this.climber.body_loc.minus(this.pulley.position).norm() + this.pulley.position.minus(this.belayer.body_loc).norm();
     }
 }
 
@@ -289,13 +403,93 @@ class Gouraud_Shader extends Shader {
         // within this function, one data field at a time, to fully initialize the shader for a draw.
 
         // Fill in any missing fields in the Material object with custom defaults for this shader:
-        const defaults = {color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40};
+        const defaults = { color: color(0, 0, 0, 1), ambient: 0, diffusivity: 1, specularity: 1, smoothness: 40 };
         material = Object.assign({}, defaults, material);
 
         this.send_material(context, gpu_addresses, material);
         this.send_gpu_state(context, gpu_addresses, gpu_state, model_transform);
     }
 }
+// class Normal_Map extends Shader {
+//   update_GPU(context, gpu_addresses, graphics_state, model_transform, material) {
+//       // update_GPU():  Defining how to synchronize our JavaScript's variables to the GPU's:
+//       const [P, C, M] = [graphics_state.projection_transform, graphics_state.camera_inverse, model_transform],
+//           PCM = P.times(C).times(M);
+//       context.uniformMatrix4fv(gpu_addresses.model_transform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
+//       context.uniformMatrix4fv(gpu_addresses.projection_camera_model_transform, false,
+//           Matrix.flatten_2D_to_1D(PCM.transposed()));
+//   }
+
+//   shared_glsl_code() {
+//       // ********* SHARED CODE, INCLUDED IN BOTH SHADERS *********
+//       return `
+//       precision mediump float;
+//       varying vec4 point_position;
+//       varying vec4 center;
+//       `;
+//   }
+
+//   vertex_glsl_code() {
+//       // ********* VERTEX SHADER *********
+//       // Complete the main function of the vertex shader.
+//       return this.shared_glsl_code() + `
+//       attribute vec3 position;
+//       uniform mat4 model_transform;
+//       uniform mat4 projection_camera_model_transform;
+//       void main(){
+
+//         texture_coordinates = textcoord;
+//         fragment_position = vec3(model * vec4(position,1.0));
+     
+//         mat3 normalMatrix = transpose(inverse(mat3(model)));
+//         vec3 T = normalize(normalMatrix * tangent);
+//         vec3 N = normalize(normalMatrix * normal);
+//         T = normalize(T - dot(T, N) * N);
+//         vec3 B = cross(N, T);
+//         mat3 TBN = transpose(mat3(T,B,N));
+//         view_position =  TBN * viewPos; // camera position
+//         light_position = TBN * lightPos; // light position
+//         fragment_position = TBN * fragment_position;
+       
+//         gl_Position = projection * view * model * vec4(position,1.0);
+//      }`;
+//   }
+
+//   fragment_glsl_code() {
+//       // ********* FRAGMENT SHADER *********
+//       // Complete the main function of the fragment shader.
+//       return this.shared_glsl_code() + `
+//       void main() {
+//         vec3 Normal = texture(TextSamplerNormals,texture_coordinates).rgb; // extract normal
+//         Normal = normalize(Normal * 2.0 - 1.0); // correct range
+//         material_color = texture2D(TextSampler,texture_coordinates.st); // diffuse map
+    
+//         vec3 I_amb = AmbientLight.color * AmbientLight.intensity;
+//         vec3 lightDir = normalize(light_position - fragment_position);
+    
+//         vec3 I_dif = vec3(0,0,0);
+//         float DiffusiveFactor = max(dot(lightDir,Normal),0.0);
+//         vec3 I_spe = vec3(0,0,0);
+//         float SpecularFactor = 0.0;
+    
+//         if (DiffusiveFactor>0.0) {
+//            I_dif = DiffusiveLight.color * DiffusiveLight.intensity * DiffusiveFactor;
+    
+//            vec3 vertex_to_eye = normalize(view_position - fragment_position); 
+//            vec3 light_reflect = reflect(-lightDir,Normal);
+//            light_reflect = normalize(light_reflect);
+    
+//            SpecularFactor = pow(max(dot(vertex_to_eye,light_reflect),0.0),SpecularLight.power);
+//            if (SpecularFactor>0.0)  {
+//                I_spe = DiffusiveLight.color * SpecularLight.intensity * SpecularFactor;
+//            }
+//        }
+    
+//        color = vec4(material_color.rgb * (I_amb + I_dif + I_spe),material_color.a);
+    
+//       }`;
+//   }
+// }
 
 class Ring_Shader extends Shader {
     update_GPU(context, gpu_addresses, graphics_state, model_transform, material) {

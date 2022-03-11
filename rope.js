@@ -1,3 +1,4 @@
+import { FLOOR_HEIGHT } from './constants.js';
 import {defs, tiny} from './examples/common.js';
 
 const {
@@ -14,17 +15,19 @@ const meters_per_frame = 0.2;
 const jakobsen_iters = 15;
 const HUMAN = 150;
 export class Rope {
-    constructor(n = 10, l = 10, start, anchor = true, radius = 0.5) {
+    constructor(n = 10, l = 10, start, end, anchor = true, radius = 0.5) {
         this.points = [];
         this.n = n;
         this.d = l/n;
-        // create a rope that starts horizontal
+        // create a rope that starts vertical
+        const dX = (end[0]-start[0]) / (n-1);
+        const dY = (end[1]-start[1]) / (n-1);
         let position = start || vec3(0, 0, 0);
         for (let i = 0; i < n; i++) {
             const anchorPoint = (i === 0 || i == n-1);
             const mass = i === 0 ? HUMAN : i === n - 1 ? HUMAN : 1
             this.points.push(new Point(position, anchorPoint && anchor, radius, mass));
-            position = position.plus(vec3(this.d, 0, 0));
+            position = position.plus(vec3(dX, dY, 0));
         }
     }
 
@@ -36,7 +39,12 @@ export class Rope {
         this.points[i].toggleAnchor();
     }
 
-    update(dt, thrust, pulleys) {
+    setAnchors(p1, p2) {
+        if (p1) this.points[0] = p1;
+        if (p2) this.points[this.points.length - 1] = p2;
+    }
+
+    update(dt, thrust, pulley, floor_height) {
         // control step size in case of weirdness
         dt = Math.min(dt, 0.02);
         
@@ -99,7 +107,19 @@ export class Rope {
                         }
                     }
                 }
-            }   
+            }
+
+            // detect collision with floor
+            for (let i = 0; i < n; i++) {
+              const p = this.points[i];
+              const diff = p.position[1] - FLOOR_HEIGHT;
+              const dist = (diff - p.radius);
+              if (dist < 0) {
+                  const dir = vec3(0,1,0);
+                  const vec = dir.times(dist);
+                  p.position = p.position.minus(vec);
+              }
+            }
         }
     }
 }
