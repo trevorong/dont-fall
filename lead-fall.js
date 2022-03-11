@@ -36,6 +36,7 @@ export class DontFall extends Scene {
         this.climber = new Person(...startLoc, cM, false, this.pulley, true);
         this.belayer = new Person(...belayerLoc, bM, false, this.pulley, false);
 
+        this.sunX = 10;
 
         // sliders
         let cWSlider = document.getElementById("climberWeight");
@@ -103,7 +104,7 @@ export class DontFall extends Scene {
             ring: new Material(new Ring_Shader(),
                 { ambient: 1, color: hex_color("#B08040") }),
             sun: new Material(new defs.Phong_Shader(),
-                { ambient: 1, color: hex_color("#ff0000") }),
+                { ambient: 1, color: hex_color("#ffffff") }),
             planet1: new Material(new defs.Phong_Shader(),
                 { ambient: 0, diffusivity: 1, color: hex_color("#808080") }),
             planet2gouraud: new Material(new Gouraud_Shader(),
@@ -154,6 +155,14 @@ export class DontFall extends Scene {
         this.new_line();
         this.key_triggered_button("Attach camera to Belayer", ["Control", "2"], () => this.attached = () => this.belayer_transform);
         this.new_line();
+        this.key_triggered_button("Move sun left", ["j"], () => {
+          this.sunX = Math.max(this.sunX - 1, -15);
+        });
+        this.new_line();
+        this.key_triggered_button("Move sun right", ["l"], () => {
+          this.sunX = Math.min(this.sunX + 1, 15);
+        });
+        this.new_line();
         // this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
         // this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
         // this.new_line();
@@ -195,8 +204,12 @@ export class DontFall extends Scene {
         let model_transform = Mat4.identity();
 
         // draw skybox
-        const light_position = vec4(10, 10, 10, 1);
+        // The parameters of the Light are: position, color, size
+        const light_position = vec4(this.sunX, 10, 10, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+
+        const sun_transform = Mat4.identity().times(Mat4.translation(this.sunX,6,10));
+        this.shapes.sphere.draw(context, program_state, sun_transform, this.materials.sun);
 
         model_transform = model_transform.times(Mat4.scale(100, 100, 100));
         this.shapes.box.draw(context, program_state, model_transform, this.materials.texture);
@@ -210,12 +223,6 @@ export class DontFall extends Scene {
         // model_transform = model_transform.times(Mat4.translation(5,0,0).times(Mat4.rotation(-1,1,0,0)));
         // this.shapes.teapot.draw(context, program_state, model_transform, this.materials.test);
         // model_transform = Mat4.identity();
-
-        // make sun
-        const light_size = 10 ** 3;
-
-        // The parameters of the Light are: position, color, size
-        program_state.lights = [new Light(vec4(0, 0, 0, 1), color(1, 1, 1, 1.0), light_size)];
 
         // // TEST: Rope
         // for (let i = 0; i < this.rope.n; i++) {
