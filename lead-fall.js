@@ -124,7 +124,7 @@ export class DontFall extends Scene {
             }),
             texture2: new Material(new defs.Textured_Phong(), {
               color: hex_color("#000000"),
-              ambient: 1, diffusivity: 0.1, specularity: 0.1,
+              ambient: 1, diffusivity: 0.7, specularity: 1,
               texture: new Texture("assets/amongus.jpg", "NEAREST")
             }),
             ground_texture: new Material(new defs.Textured_Phong(), {
@@ -134,7 +134,7 @@ export class DontFall extends Scene {
             }),
             rock_texture: new Material(new defs.Textured_Phong(), {
                 color: hex_color("#000000"),
-                ambient: 1, diffusivity: 0.1, specularity: 0.1,
+                ambient: 1, diffusivity: 0.1, specularity: 0.3,
                 texture: new Texture("assets/red-rock-texture.jpg", "NEAREST")
             }),
             rope_texture: new Material(new defs.Textured_Phong(), {
