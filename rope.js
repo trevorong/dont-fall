@@ -1,5 +1,5 @@
 import { FLOOR_HEIGHT } from './constants.js';
-import {defs, tiny} from './examples/common.js';
+import { defs, tiny } from './examples/common.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
@@ -18,13 +18,13 @@ export class Rope {
     constructor(n = 10, l = 10, start, end, anchor = true, radius = 0.5) {
         this.points = [];
         this.n = n;
-        this.d = l/n;
+        this.d = l / n;
         // create a rope that starts vertical
-        const dX = (end[0]-start[0]) / (n-1);
-        const dY = (end[1]-start[1]) / (n-1);
+        const dX = (end[0] - start[0]) / (n - 1);
+        const dY = (end[1] - start[1]) / (n - 1);
         let position = start || vec3(0, 0, 0);
         for (let i = 0; i < n; i++) {
-            const anchorPoint = (i === 0 || i == n-1);
+            const anchorPoint = (i === 0 || i == n - 1);
             const mass = i === 0 ? HUMAN : i === n - 1 ? HUMAN : 1
             this.points.push(new Point(position, anchorPoint && anchor, radius, mass));
             position = position.plus(vec3(dX, dY, 0));
@@ -47,7 +47,7 @@ export class Rope {
     update(dt, thrust, pulley, floor_height) {
         // control step size in case of weirdness
         dt = Math.min(dt, 0.02);
-        
+
         // verlet integration
         const n = this.n;
         let ti = 0;
@@ -62,16 +62,16 @@ export class Rope {
                 // x_n+1 = 2x_n - x_n-1 + dt^2a
                 const newPosition = p.position.times(2)
                     .minus(p.prevPosition)
-                    .plus(p.acceleration().times(dt*dt));
+                    .plus(p.acceleration().times(dt * dt));
                 // potentially compute friction?
                 p.update(newPosition);
             }
         }
 
         // jakobsen method
-        for (let iter = 0; iter < jakobsen_iters; iter++){
+        for (let iter = 0; iter < jakobsen_iters; iter++) {
             for (let i = 1; i < n; i++) {
-                const p1 = this.points[i-1];
+                const p1 = this.points[i - 1];
                 const p2 = this.points[i];
                 const diff = p2.position.minus(p1.position);
                 const dir = diff.normalized();
@@ -89,36 +89,32 @@ export class Rope {
                 }
                 else if (p2.anchor) {
                     p1.position = p1.position.plus(vec);
-                } 
-            }
-            
-            // detect pulley collision
-            if (pulleys && pulleys.length) {
-                for (let i = 0; i < n; i++) {
-                    for (let j = 0; j < pulleys.length; j++) {
-                        const pulley = pulleys[j];
-                        const p = this.points[i];
-                        const diff = p.position.minus(pulley.position);
-                        const dist = (diff.norm() - (p.radius + pulley.radius));
-                        if (dist < 0) {
-                            const dir = diff.normalized();
-                            const vec = dir.times(dist);
-                            p.position = p.position.minus(vec);
-                        }
-                    }
                 }
             }
 
+            // detect pulley collision
+            if (pulley) for (let i = 0; i < n; i++) {
+                const p = this.points[i];
+                const diff = p.position.minus(pulley.position);
+                const dist = (diff.norm() - (p.radius + pulley.radius));
+                if (dist < 0) {
+                    const dir = diff.normalized();
+                    const vec = dir.times(dist);
+                    p.position = p.position.minus(vec);
+                }
+            }
+
+
             // detect collision with floor
             for (let i = 0; i < n; i++) {
-              const p = this.points[i];
-              const diff = p.position[1] - FLOOR_HEIGHT;
-              const dist = (diff - p.radius);
-              if (dist < 0) {
-                  const dir = vec3(0,1,0);
-                  const vec = dir.times(dist);
-                  p.position = p.position.minus(vec);
-              }
+                const p = this.points[i];
+                const diff = p.position[1] - FLOOR_HEIGHT;
+                const dist = (diff - p.radius);
+                if (dist < 0) {
+                    const dir = vec3(0, 1, 0);
+                    const vec = dir.times(dist);
+                    p.position = p.position.minus(vec);
+                }
             }
         }
     }
@@ -127,7 +123,7 @@ export class Rope {
 export class Point {
     constructor(position, anchor = false, radius = 0.5, mass = 1) { //vec3 or vec4?
         this.position = position;
-        this.prevPosition = position; 
+        this.prevPosition = position;
         this.anchor = anchor;
         this.radius = radius;
         this.mass = mass;
@@ -155,7 +151,7 @@ export class Point {
     acceleration() {
         if (this.anchor) return vec3(0, 0, 0);
         const grav = vec3(0, -g, 0);
-        const damp = this.dP().times(-c/this.mass);
+        const damp = this.dP().times(-c / this.mass);
         return grav.plus(damp);
     }
 
@@ -166,7 +162,7 @@ export class Point {
 }
 
 export class Pulley {
-    constructor(position, radius = 1) { 
+    constructor(position, radius = 1) {
         this.position = position;
         this.radius = radius;
     }
