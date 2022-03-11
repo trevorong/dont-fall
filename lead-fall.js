@@ -146,33 +146,32 @@ export class DontFall extends Scene {
 
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
+        this.key_triggered_button("View main scene", ["Control", "0"], () => this.attached = () => null);
         this.new_line();
         this.key_triggered_button("Attach camera to Climber", ["Control", "1"], () => this.attached = () => this.climber_transform);
         this.new_line();
         this.key_triggered_button("Attach camera to Belayer", ["Control", "2"], () => this.attached = () => this.belayer_transform);
         this.new_line();
-        this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
-        this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
-        this.new_line();
-        this.key_triggered_button("Move anchor 1 left", ["j"], () => this.thrust[0][0] = -1, undefined, () => this.thrust[0][0] = 0);
-        this.key_triggered_button("Move anchor 1 right", ["l"], () => this.thrust[0][0] = 1, undefined, () => this.thrust[0][0] = 0);
-        this.new_line();
-        this.key_triggered_button("Toggle anchor 1", ["t"], () => this.rope.toggleAnchor(0));
-
-        this.new_line();
-        this.key_triggered_button("Move anchor 2 up", ["Shift", "I"], () => this.thrust[1][1] = 1, undefined, () => this.thrust[1][1] = 0);
-        this.key_triggered_button("Move anchor 2 down", ["Shift", "K"], () => this.thrust[1][1] = -1, undefined, () => this.thrust[1][1] = 0);
-        this.new_line();
-        this.key_triggered_button("Move anchor 2 left", ["Shift", "J"], () => this.thrust[1][0] = -1, undefined, () => this.thrust[1][0] = 0);
-        this.key_triggered_button("Move anchor 2 right", ["Shift", "L"], () => this.thrust[1][0] = 1, undefined, () => this.thrust[1][0] = 0);
-        this.new_line();
-        this.key_triggered_button("Toggle anchor 2", ["Shift", "T"], () => this.rope.toggleAnchor());
-        this.new_line();
-        this.key_triggered_button("Toggle both anchors", ["Shift", "P"], () => {
-            this.rope.toggleAnchor(0);
-            this.rope.toggleAnchor();
-        });
+        // this.key_triggered_button("Move anchor 1 up", ["i"], () => this.thrust[0][1] = 1, undefined, () => this.thrust[0][1] = 0);
+        // this.key_triggered_button("Move anchor 1 down", ["k"], () => this.thrust[0][1] = -1, undefined, () => this.thrust[0][1] = 0);
+        // this.new_line();
+        // this.key_triggered_button("Move anchor 1 left", ["j"], () => this.thrust[0][0] = -1, undefined, () => this.thrust[0][0] = 0);
+        // this.key_triggered_button("Move anchor 1 right", ["l"], () => this.thrust[0][0] = 1, undefined, () => this.thrust[0][0] = 0);
+        // this.new_line();
+        // this.key_triggered_button("Toggle anchor 1", ["t"], () => this.rope.toggleAnchor(0));
+        // this.new_line();
+        // this.key_triggered_button("Move anchor 2 up", ["Shift", "I"], () => this.thrust[1][1] = 1, undefined, () => this.thrust[1][1] = 0);
+        // this.key_triggered_button("Move anchor 2 down", ["Shift", "K"], () => this.thrust[1][1] = -1, undefined, () => this.thrust[1][1] = 0);
+        // this.new_line();
+        // this.key_triggered_button("Move anchor 2 left", ["Shift", "J"], () => this.thrust[1][0] = -1, undefined, () => this.thrust[1][0] = 0);
+        // this.key_triggered_button("Move anchor 2 right", ["Shift", "L"], () => this.thrust[1][0] = 1, undefined, () => this.thrust[1][0] = 0);
+        // this.new_line();
+        // this.key_triggered_button("Toggle anchor 2", ["Shift", "T"], () => this.rope.toggleAnchor());
+        // this.new_line();
+        // this.key_triggered_button("Toggle both anchors", ["Shift", "P"], () => {
+        //     this.rope.toggleAnchor(0);
+        //     this.rope.toggleAnchor();
+        // });
         this.key_triggered_button("Make climber fall", ["Shift", "D"], () => {
             console.log("climber fall triggered");
             this.climber.freeFall = true;
@@ -275,27 +274,17 @@ export class DontFall extends Scene {
             this.shapes.sphere.draw(context, program_state, p.transform(), this.materials.rope_texture);
         }
 
-        // camera buttons
-        // const desired = this.attached;
-        // if (desired && desired()) {
-        //   program_state.camera_inverse = Mat4.inverse(desired().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
-        // } else {
-        //   program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
-        // }
+        //camera buttons
+        const desired = this.attached;
+        if (desired && desired()) {
+          program_state.camera_inverse = Mat4.inverse(desired().times(Mat4.rotation(1,-0.5,0,0).times(Mat4.translation(0,-5,20)))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
+        } else {
+          program_state.camera_inverse = this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1));
+        }
 
         this.rope.update(dt, this.thrust, this.pulley, FLOOR_HEIGHT);
         this.rope.setAnchors(new Point(this.climber.body_loc), new Point(this.belayer.body_loc));
         this.shapes.teapot.draw(context, program_state, this.pulley.transform(), this.materials.test);
-
-        // if (this.attached && this.attached()) {
-        //     program_state.set_camera(
-        //         Mat4.inverse(this.attached().times(Mat4.translation(0,0,5))).map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
-        //     );
-        // } else {
-        //     program_state.set_camera(
-        //         this.initial_camera_location.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1))
-        //     );
-        // }
     }
 
     getPulleyAcc() {
